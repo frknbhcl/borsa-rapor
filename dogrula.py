@@ -450,11 +450,26 @@ def capraz_karsilastir(yahoo: pd.Series, diger: pd.Series, gun: int = CAPRAZ_GUN
     o.update(son_tarih=m.index[-1].date().isoformat(), son_fark=float(fark.iloc[-1]),
              maks_fark=float(fark.max()), gun_1yuzde=int((fark > 0.01).sum()),
              yahoo_son=float(m["y"].iloc[-1]), diger_son=float(m["d"].iloc[-1]))
+    getiri_farkli = None
     if len(m) >= 6:
         ry, rd = getiri(m["y"]), getiri(m["d"])
         k = korelasyon_hesapla(ry, rd, 5)
         o["getiri_kor"] = k if gecerli(k) else None
-    o["durum"] = "uyumsuz" if (o["son_fark"] > 0.005 or o["gun_1yuzde"] > 2) else "uyumlu"
+        getiri_farkli = int(((ry - rd).abs() > 0.005).sum())
+    o["getiri_farkli_gun"] = getiri_farkli
+    o["duzeltme_farki"] = False
+    if o["son_fark"] > 0.005:
+        o["durum"] = "uyumsuz"
+    elif o["gun_1yuzde"] > 2:
+        # Son kapanış aynı, eski günler sabit bir oranla farklı ve günlük getiriler yalnızca
+        # 1-2 günde ayrışıyor: iki kaynağın temettü/bedelsiz geriye dönük düzeltmesi farklı.
+        if getiri_farkli is not None and getiri_farkli <= 2:
+            o["durum"] = "uyumlu"
+            o["duzeltme_farki"] = True
+        else:
+            o["durum"] = "uyumsuz"
+    else:
+        o["durum"] = "uyumlu"
     return o
 
 
@@ -1167,15 +1182,19 @@ def html_uret(s: dict) -> str:
     kaynak_ad = "Stooq ya da Nasdaq" if s["piyasa"] == "abd" else "İş Yatırım"
     p.append('<section id="kaynak"><h2>Fiyatlar başka kaynakla karşılaştırıldı</h2>')
     p.append(f'<p class="aciklama">Yahoo\'nun düzeltilmemiş kapanışları son {CAPRAZ_GUN} işlem gününde {e(kaynak_ad)} '
-             f'ile aynı tarihler üzerinden karşılaştırıldı. Son kapanış farkı %0,5\'i ya da %1\'in üzerindeki '
-             f'gün sayısı 2\'yi aşarsa “uyumsuz”.</p>')
+             f'ile aynı tarihler üzerinden karşılaştırıldı. Son kapanış farkı %0,5\'i aşarsa ya da %1\'in üzerinde '
+             f'farklı gün sayısı 2\'yi aşıp bu farklar günlük getirilerde de görülürse “uyumsuz”. Son kapanış aynıyken '
+             f'eski günlerin sabit bir oranla farklı olması temettü/bedelsiz düzeltmesinin iki kaynakta farklı '
+             f'yapılmasından kaynaklanır; bu durum “uyumlu (düzeltme farkı)” olarak işaretlenir.</p>')
     sira = {"uyumsuz": 0, "ayrıştırılamadı": 1, "ulaşılamadı": 2, "eşleşme yok": 3, "Yahoo yok": 4, "uyumlu": 5}
     hs = sorted(s["hisseler"], key=lambda h: (sira.get(h["capraz"]["durum"], 9), h["sembol"]))
     sat = []
     for h in hs:
         c = h["capraz"]
         sat.append(("kotu" if c["durum"] == "uyumsuz" else "",
-                    [e(kisa(h["sembol"])), rozet(c["durum"]), tr_yuzde(c.get("son_fark")), tr_yuzde(c.get("maks_fark")),
+                    [e(kisa(h["sembol"])), rozet(c["durum"]) + ('<span class="aciklama">düzeltme farkı</span>'
+                                                               if c.get("duzeltme_farki") else ""),
+                     tr_yuzde(c.get("son_fark")), tr_yuzde(c.get("maks_fark")),
                      e(c["gun_1yuzde"]) if c.get("gun_1yuzde") is not None else "–",
                      e(c["eslesen_gun"]) if c.get("eslesen_gun") is not None else "–",
                      tr_sayi(c.get("getiri_kor"), 3), e(c.get("kaynak") or "–")]))
