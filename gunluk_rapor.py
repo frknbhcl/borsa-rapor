@@ -37,6 +37,8 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 
+from skor_sayfasi import skor_html
+
 try:
     import yfinance as yf
     from yfinance import EquityQuery
@@ -90,7 +92,8 @@ PIYASALAR = {
 PARCA = 40             # tek seferde indirilen hisse sayısı
 PARALEL = 4            # aynı anda kaç istek (Yahoo'yu yormamak için düşük tutuldu)
 LISTE_YENILEME_GUN = 7 # hisse listesi kaç günde bir yenilensin
-GECMIS = "1y"          # tam indirmede geçmiş uzunluğu
+GECMIS_GUN = 400       # tam indirmede kaç günlük geçmiş (12-1 momentum için 1 yıldan biraz fazla)
+ONBELLEK_SURUM = 2     # önbellek biçimi değişince artırılır; eski önbellek baştan indirilir
 LISTE_UZUNLUK = 15     # her listede gösterilecek hisse sayısı
 HACIM_PATLAMA = 3.0    # bugünkü hacim / 20 günlük ortalama
 ALANLAR = ["Open", "High", "Low", "Close", "Volume"]
@@ -384,6 +387,10 @@ def toplu_indir(semboller: list[str], etiket: str, **kw) -> tuple[dict, list[str
     return sonuc, eksik
 
 
+def _baslangic() -> str:
+    return (datetime.now() - timedelta(days=GECMIS_GUN)).strftime("%Y-%m-%d")
+
+
 def fiyatlari_guncelle(kod: str, semboller: list[str], tam: bool) -> dict[str, pd.DataFrame]:
     yol = VERI / f"fiyat_{kod}.pkl"
     eski = None
@@ -392,11 +399,12 @@ def fiyatlari_guncelle(kod: str, semboller: list[str], tam: bool) -> dict[str, p
             eski = pd.read_pickle(yol)
         except Exception:  # noqa: BLE001
             eski = None
-    if eski is not None and (datetime.now() - eski["Close"].index.max()).days > 25:
-        eski = None  # çok eski önbellek; baştan indir
+    if eski is not None and (eski.get("_surum") != ONBELLEK_SURUM
+                             or (datetime.now() - eski["Close"].index.max()).days > 25):
+        eski = None  # çok eski ya da eski biçimli önbellek; baştan indir
 
     if eski is None:
-        veri, eksik = toplu_indir(semboller, "Tam geçmiş", period=GECMIS)
+        veri, eksik = toplu_indir(semboller, "Tam geçmiş", start=_baslangic())
         if "Close" not in veri:
             sys.exit("Hiç fiyat verisi indirilemedi. İnternet bağlantını kontrol et.")
     else:
@@ -420,7 +428,7 @@ def fiyatlari_guncelle(kod: str, semboller: list[str], tam: bool) -> dict[str, p
         tam_veri = {}
         if tam_liste:
             yaz(f"  {len(yeniler)} yeni hisse, {len(yeniden)} düzeltilmiş hisse için tam geçmiş indiriliyor.")
-            tam_veri, _ = toplu_indir(tam_liste, "Tam geçmiş", period=GECMIS)
+            tam_veri, _ = toplu_indir(tam_liste, "Tam geçmiş", start=_baslangic())
 
         veri = {}
         for a in ALANLAR:
@@ -431,19 +439,19 @@ def fiyatlari_guncelle(kod: str, semboller: list[str], tam: bool) -> dict[str, p
                 df = tam_veri[a].combine_first(df)
             veri[a] = df
 
-    sinir = pd.Timestamp(datetime.now() - timedelta(days=400)).normalize()
+    sinir = pd.Timestamp(datetime.now() - timedelta(days=GECMIS_GUN + 10)).normalize()
     for a in ALANLAR:
         df = veri[a]
         df = df.loc[df.index >= sinir, [s for s in df.columns if s in set(semboller)]]
-        veri[a] = df.sort_index()
+        veri[a] = df.sort_index().astype("float32")
     VERI.mkdir(parents=True, exist_ok=True)
-    pd.to_pickle(veri, yol)
+    pd.to_pickle({**veri, "_surum": ONBELLEK_SURUM}, yol)
     return veri
 
 
 def endeksleri_indir(ayar: dict) -> dict[str, pd.Series]:
     adlar = {ayar["endeks"][0]: ayar["endeks"][1], **ayar["ekstra"]}
-    veri = _indir(list(adlar.values()), period=GECMIS)
+    veri = _indir(list(adlar.values()), start=_baslangic())
     sonuc = {}
     if "Close" in veri:
         for ad, sembol in adlar.items():
@@ -457,6 +465,95 @@ def endeksleri_indir(ayar: dict) -> dict[str, pd.Series]:
 # ---------------------------------------------------------------------------
 # 3) Hesaplamalar
 # ---------------------------------------------------------------------------
+
+# Her model bir akademik çalışmaya dayanır. yon=+1: değer yüksekse iyi, -1: düşükse iyi.
+MODELLER = [
+    {"id": "hft_donus", "etiket": "son 1 hafta getirisi", "grup": "kisa", "ad": "Haftalık dönüş", "yon": -1, "bicim": "yuzde",
+     "kaynak": "Lehmann (1990)",
+     "aciklama": "Son 1 haftada en çok düşen hisseler kısa sürede toparlanma eğiliminde. Ham değer: son 5 günlük getiri."},
+    {"id": "ay_donus", "etiket": "son 1 ay getirisi", "grup": "kisa", "ad": "Aylık dönüş", "yon": -1, "bicim": "yuzde",
+     "kaynak": "Jegadeesh (1990); BIST: Bildik & Gülay (2007)",
+     "aciklama": "Son 1 ayın kaybedenleri sonraki ay kazananları geçme eğiliminde. BIST'te bu karşıt etki belirgin. Ham değer: son 21 günlük getiri."},
+    {"id": "hacim_primi", "etiket": "hacim / ortalama", "grup": "kisa", "ad": "Hacim primi", "yon": 1, "bicim": "kat",
+     "kaynak": "Gervais, Kaniel & Mingelgrin (2001)",
+     "aciklama": "Olağandışı yüksek hacimle işlem gören hisseler sonraki ay yükselme eğiliminde. Ham değer: son 5 günün ortalama hacmi ÷ önceki 50 günün ortalaması."},
+    {"id": "max_etkisi", "etiket": "son ayın en iyi günü", "grup": "kisa", "ad": "Piyango etkisi (MAX)", "yon": -1, "bicim": "yuzde",
+     "kaynak": "Bali, Cakici & Whitelaw (2011)",
+     "aciklama": "Son ayda tek günde çok sert yükselmiş 'piyango' hisseleri sonrasında geride kalıyor. Ham değer: son 21 günün en yüksek günlük getirisi."},
+    {"id": "zirve52", "etiket": "52h zirveye uzaklık", "grup": "orta", "ad": "52 hafta zirvesi", "yon": 1, "bicim": "yuzde",
+     "kaynak": "George & Hwang (2004)",
+     "aciklama": "52 haftalık zirvesine yakın hisseler sonraki aylarda daha iyi getiri sağlıyor ve bu etki tersine dönmüyor. Ham değer: fiyatın 52 hafta zirvesine uzaklığı."},
+    {"id": "momentum", "etiket": "12-1 ay getirisi", "grup": "orta", "ad": "Momentum (12-1)", "yon": 1, "bicim": "yuzde",
+     "kaynak": "Jegadeesh & Titman (1993); Asness, Moskowitz & Pedersen (2013)",
+     "aciklama": "Son ayı saymadan geçen 12 ayın kazananları kazanmaya devam ediyor. Türkiye'de kanıt zayıf. Ham değer: 12 ay önceden 1 ay öncesine getiri."},
+    {"id": "trend", "etiket": "200 günlüğe uzaklık", "grup": "orta", "ad": "Trend (200 gün)", "yon": 1, "bicim": "yuzde",
+     "kaynak": "Moskowitz, Ooi & Pedersen (2012)",
+     "aciklama": "Uzun vadeli ortalamasının üstünde seyreden varlıklar trendi sürdürme eğiliminde. Ham değer: fiyatın 200 günlük ortalamaya uzaklığı."},
+    {"id": "dusuk_oyn", "etiket": "yıllık oynaklık", "grup": "uzun", "ad": "Düşük oynaklık", "yon": -1, "bicim": "oran",
+     "kaynak": "Blitz & van Vliet (2007); BIST: Yaman (2021)",
+     "aciklama": "Fiyatı daha sakin hareket eden hisseler, riskine göre beklenenden iyi getiri sağlıyor. Ham değer: yıllık oynaklık (son 1 yıl)."},
+    {"id": "dusuk_beta", "etiket": "beta", "grup": "uzun", "ad": "Düşük beta", "yon": -1, "bicim": "sayi",
+     "kaynak": "Frazzini & Pedersen (2014); BIST: Özden (2019)",
+     "aciklama": "Endeksle daha az hareket eden hisseler beklenenden iyi getiri sağlıyor. Ham değer: endekse göre beta (son 1 yıl)."},
+    {"id": "dusuk_ioyn", "etiket": "özgün oynaklık", "grup": "uzun", "ad": "Düşük özgün oynaklık", "yon": -1, "bicim": "oran",
+     "kaynak": "Ang, Hodrick, Xing & Zhang (2006)",
+     "aciklama": "Endeksten bağımsız oynaklığı yüksek hisseler geride kalıyor. Ham değer: endeks etkisi çıkarıldıktan sonraki yıllık oynaklık (son 3 ay)."},
+]
+GRUPLAR = {"kisa": "Kısa vade · 1 hafta–1 ay", "orta": "Orta vade · 3–12 ay", "uzun": "Uzun vade · 1 yıl+"}
+
+
+def model_degerleri(c, h, v, getiri, endeks) -> pd.DataFrame:
+    """Her model için ham değer (hisse başına bir sayı)."""
+    son = c.iloc[-1]
+    ham = pd.DataFrame(index=c.columns)
+    n = len(c)
+    ham["hft_donus"] = son / c.iloc[-6] - 1 if n > 6 else np.nan
+    ham["ay_donus"] = son / c.iloc[-22] - 1 if n > 22 else np.nan
+    if n > 55:
+        once = v.iloc[-55:-5].mean()
+        ham["hacim_primi"] = v.iloc[-5:].mean() / once.where(once > 0)
+    else:
+        ham["hacim_primi"] = np.nan
+    ham["max_etkisi"] = getiri.iloc[-21:].max().where(getiri.iloc[-21:].notna().sum() >= 15)
+    yeterli = c.iloc[-252:].notna().sum() >= 200
+    ham["zirve52"] = (son / h.iloc[-252:].max() - 1).where(yeterli)
+    ham["momentum"] = c.iloc[-22] / c.iloc[-253] - 1 if n >= 253 else np.nan
+    sma200 = c.iloc[-200:].mean().where(c.iloc[-200:].notna().sum() >= 190)
+    ham["trend"] = son / sma200 - 1
+    R = getiri.iloc[-252:]
+    ham["dusuk_oyn"] = (R.std() * np.sqrt(252)).where(R.notna().sum() >= 120)
+    ham["dusuk_beta"] = np.nan
+    ham["dusuk_ioyn"] = np.nan
+    if endeks is not None:
+        e = endeks.reindex(c.index).astype(float)
+        I = (e / e.shift(1) - 1).iloc[-252:]
+        maske = R.notna() & I.notna().to_numpy()[:, None]
+        say = maske.sum()
+        Rm = R.where(maske)
+        Im = maske.mul(I.fillna(0), axis=0).where(maske)
+        ort_r, ort_i = Rm.mean(), Im.mean()
+        kov = ((Rm - ort_r) * (Im - ort_i)).sum() / (say - 1)
+        var = ((Im - ort_i) ** 2).sum() / (say - 1)
+        beta = (kov / var.where(var > 0)).where(say >= 120)
+        ham["dusuk_beta"] = beta
+        R63, I63 = getiri.iloc[-63:], I.iloc[-63:]
+        artik = R63 - np.outer(I63.to_numpy(), beta.to_numpy())
+        ham["dusuk_ioyn"] = (artik.std() * np.sqrt(252)).where(artik.notna().sum() >= 40)
+    return ham.replace([np.inf, -np.inf], np.nan)
+
+
+def puanla(deger: pd.Series, yon: int, referans: pd.Series) -> pd.Series:
+    """Ham değeri, likit hisselerin dağılımındaki yerine göre 0-100 puana çevirir."""
+    ref = np.sort(deger[referans & deger.notna()].to_numpy(dtype=float))
+    if len(ref) < 20:
+        ref = np.sort(deger.dropna().to_numpy(dtype=float))
+    if len(ref) == 0:
+        return pd.Series(np.nan, index=deger.index)
+    x = deger.to_numpy(dtype=float)
+    sira = (np.searchsorted(ref, x, side="left") + np.searchsorted(ref, x, side="right")) / 2 / len(ref) * 100
+    puan = sira if yon > 0 else 100 - sira
+    return pd.Series(np.where(np.isnan(x), np.nan, np.round(puan)), index=deger.index)
+
 
 def hesapla(veri: dict, endeks: pd.Series | None, ayar: dict, adlar: pd.Series):
     c, h, l, v = (veri[a] for a in ("Close", "High", "Low", "Volume"))
@@ -545,6 +642,12 @@ def hesapla(veri: dict, endeks: pd.Series | None, ayar: dict, adlar: pd.Series):
 
     m["likit"] = (m["guncel"] & (m["ort_islem"] >= ayar["min_islem_hacmi"])
                   & (m["kapanis"] >= ayar["min_fiyat"]))
+
+    # Akademik modellerin ham değerleri ve 0-100 puanları
+    ham = model_degerleri(c, h, v, getiri, endeks)
+    for mdl in MODELLER:
+        m[f"h_{mdl['id']}"] = ham[mdl["id"]]
+        m[f"p_{mdl['id']}"] = puanla(ham[mdl["id"]], mdl["yon"], m["likit"] & m["guncel"])
     return m, son_tarih
 
 
@@ -641,12 +744,15 @@ rows.forEach(r=>tb.appendChild(r));}));suz();}
 """
 
 
+def sembol_url(sembol: str, kod: str) -> str:
+    if kod == "bist":
+        return f"https://www.tradingview.com/symbols/BIST-{sembol.removesuffix('.IS')}/"
+    return f"https://finance.yahoo.com/quote/{sembol}"
+
+
 def sembol_link(sembol: str, kod: str) -> str:
     gorunen = sembol.removesuffix(".IS")
-    if kod == "bist":
-        url = f"https://www.tradingview.com/symbols/BIST-{gorunen}/"
-    else:
-        url = f"https://finance.yahoo.com/quote/{sembol}"
+    url = sembol_url(sembol, kod)
     return f'<a href="{url}" target="_blank" rel="noopener">{html.escape(gorunen)}</a>'
 
 
@@ -862,6 +968,9 @@ def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
     dosya = RAPORLAR / f"{son_tarih:%Y-%m-%d}_{kod.upper()}"
     html_yol = dosya.with_suffix(".html")
     html_yol.write_text(rapor_html(kod, ayar, m, son_tarih, endeksler, banner, len(liste)), encoding="utf-8")
+    skor_yol = dosya.with_name(dosya.name + "_skor.html")
+    skor_yol.write_text(skor_html(kod, ayar, m, son_tarih, MODELLER, GRUPLAR, banner, html_yol.name,
+                                  lambda s: sembol_url(s, kod)), encoding="utf-8")
 
     csv = m.drop(columns=["likit"]).copy()
     csv["son_veri"] = csv["son_veri"].dt.strftime("%Y-%m-%d")
@@ -881,8 +990,9 @@ def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
             f"En çok düşen: {en_d.removesuffix('.IS')} {yuzde(lk.loc[en_d, 'gunluk'])}")
     yaz(f"  Uyarılı hisse: {(g['uyari'] != '').sum()} · Süre: {time.time() - basla:.0f} sn")
     yaz(f"  Rapor: {html_yol}")
+    yaz(f"  Skorlar: {skor_yol}")
     if ac and sys.platform == "darwin":
-        subprocess.run(["open", str(html_yol)], check=False)
+        subprocess.run(["open", str(skor_yol)], check=False)
     return html_yol
 
 

@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo
 SAKLAMA_GUN = 45
 AD = {"BIST": "Borsa İstanbul", "ABD": "ABD Borsaları"}
 KALIP = re.compile(r"^(\d{4}-\d{2}-\d{2})_(BIST|ABD)\.html$")
+SKOR_KALIP = re.compile(r"^(\d{4}-\d{2}-\d{2})_(BIST|ABD)_skor\.html$")
 AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz",
          "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
 GUNLER = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi", "Pazar"]
@@ -37,17 +38,19 @@ h1{font-size:26px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 10px;color:var(
 .alt{color:var(--soluk);font-size:13px}
 .kartlar{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
 @media (max-width:480px){.kartlar{grid-template-columns:1fr}}
-a.kart{display:block;background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;
-padding:18px;color:inherit;text-decoration:none}
-a.kart:hover{border-color:var(--vurgu)}
-a.kart b{display:block;font-size:18px;margin-bottom:4px}
-a.kart .ok{color:var(--vurgu);font-weight:600;font-size:14px;margin-top:10px;display:block}
+.kart{display:block;background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:18px}
+.kart b{display:block;font-size:18px;margin-bottom:4px}
+.kart .linkler{display:flex;gap:18px;margin-top:12px}
+.kart .ok{color:var(--vurgu);font-weight:600;font-size:15px;text-decoration:none}
+.kart .ok.ikincil{font-weight:500}
 .bos{background:var(--kart);border:1px dashed var(--cizgi);border-radius:12px;padding:18px;color:var(--soluk)}
 ul{list-style:none;padding:0;margin:0;background:var(--kart);border:1px solid var(--cizgi);border-radius:12px}
-li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--cizgi)}
+li{padding:11px 14px;border-bottom:1px solid var(--cizgi)}
 li:last-child{border-bottom:0}
-li a{color:var(--vurgu);text-decoration:none;margin-left:12px}
-li .tarih{font-variant-numeric:tabular-nums}
+li .tarih{display:block;font-weight:600;margin-bottom:4px}
+li .piyasa{display:flex;gap:14px;font-size:14px;margin-top:2px}
+li .piyasa span{color:var(--soluk);width:36px}
+li a{color:var(--vurgu);text-decoration:none}
 footer{color:var(--soluk);font-size:12px;margin-top:32px}
 """
 
@@ -59,10 +62,11 @@ def tarih_metni(t: datetime) -> str:
     return f"{t.day} {AYLAR[t.month - 1]} {t.year}, {GUNLER[t.weekday()]}"
 
 
-def geri_linki_ekle(icerik: str, hedef: str) -> str:
+def geri_linki_ekle(icerik: str, hedef: str, skor: str | None = None) -> str:
     if 'class="geri"' in icerik:
         return icerik
-    return icerik.replace("<main>", f'<main>{GERI_CSS}<a class="geri" href="{hedef}">← Tüm raporlar</a>', 1)
+    skor_linki = (f'<a class="geri" style="float:right" href="{skor}">Skorlar →</a>' if skor else "")
+    return icerik.replace("<main>", f'<main>{GERI_CSS}{skor_linki}<a class="geri" href="{hedef}">← Tüm raporlar</a>', 1)
 
 
 def main() -> None:
@@ -74,9 +78,11 @@ def main() -> None:
     if kaynak.exists():
         for dosya in kaynak.iterdir():
             if KALIP.match(dosya.name):
-                icerik = geri_linki_ekle(dosya.read_text(encoding="utf-8"), "../index.html")
+                skor = dosya.name.replace(".html", "_skor.html")
+                icerik = geri_linki_ekle(dosya.read_text(encoding="utf-8"), "../index.html",
+                                         skor if (kaynak / skor).exists() else None)
                 (arsiv / dosya.name).write_text(icerik, encoding="utf-8")
-            elif dosya.name.endswith("_tum.csv"):
+            elif SKOR_KALIP.match(dosya.name) or dosya.name.endswith("_tum.csv"):
                 shutil.copy2(dosya, arsiv / dosya.name)
 
     # 2) Eski raporları temizle
@@ -98,14 +104,22 @@ def main() -> None:
     # 4) Sabit adresler: bist.html ve abd.html her zaman en son rapor
     kartlar = []
     for kod in ("BIST", "ABD"):
-        sabit = site / f"{kod.lower()}.html"
+        k = kod.lower()
         if raporlar[kod]:
             tarih, ad = raporlar[kod][0]
+            skor_ad = ad.replace(".html", "_skor.html")
             icerik = (arsiv / ad).read_text(encoding="utf-8").replace('href="../index.html"', 'href="index.html"')
-            sabit.write_text(icerik, encoding="utf-8")
+            icerik = icerik.replace(f'href="{skor_ad}"', f'href="skor_{k}.html"')
+            (site / f"{k}.html").write_text(icerik, encoding="utf-8")
+            skor_link = ""
+            if (arsiv / skor_ad).exists():
+                skor = (arsiv / skor_ad).read_text(encoding="utf-8")
+                skor = skor.replace('href="../index.html"', 'href="index.html"').replace(f'href="{ad}"', f'href="{k}.html"')
+                (site / f"skor_{k}.html").write_text(skor, encoding="utf-8")
+                skor_link = f'<a class="ok" href="skor_{k}.html">Skorlar →</a>'
             kartlar.append(
-                f'<a class="kart" href="{kod.lower()}.html"><b>{AD[kod]}</b>'
-                f'<span class="alt">{tarih_metni(tarih)}</span><span class="ok">Son raporu aç →</span></a>')
+                f'<div class="kart"><b>{AD[kod]}</b><span class="alt">{tarih_metni(tarih)}</span>'
+                f'<span class="linkler">{skor_link}<a class="ok ikincil" href="{k}.html">Günlük rapor</a></span></div>')
         else:
             kartlar.append(f'<div class="bos"><b>{AD[kod]}</b><br>Henüz rapor yok.</div>')
 
@@ -116,17 +130,21 @@ def main() -> None:
             gunler.setdefault(tarih, {})[kod] = ad
     satirlar = []
     for tarih in sorted(gunler, reverse=True):
-        parcalar = []
+        piyasalar = []
         for k in ("BIST", "ABD"):
             if k not in gunler[tarih]:
                 continue
             ad = gunler[tarih][k]
-            parcalar.append(f'<a href="raporlar/{html.escape(ad)}">{k}</a>')
+            linkler = []
+            skor = ad.replace(".html", "_skor.html")
+            if (arsiv / skor).exists():
+                linkler.append(f'<a href="raporlar/{html.escape(skor)}">Skorlar</a>')
+            linkler.append(f'<a href="raporlar/{html.escape(ad)}">Rapor</a>')
             csv = ad.replace(".html", "_tum.csv")
             if (arsiv / csv).exists():
-                parcalar.append(f'<a href="raporlar/{html.escape(csv)}" title="{k} tüm hisseler (Excel)">CSV</a>')
-        linkler = "".join(parcalar)
-        satirlar.append(f'<li><span class="tarih">{tarih_metni(tarih)}</span><span>{linkler}</span></li>')
+                linkler.append(f'<a href="raporlar/{html.escape(csv)}" title="{k} tüm hisseler (Excel)">CSV</a>')
+            piyasalar.append(f'<div class="piyasa"><span>{k}</span>{"".join(linkler)}</div>')
+        satirlar.append(f'<li><span class="tarih">{tarih_metni(tarih)}</span>{"".join(piyasalar)}</li>')
     arsiv_html = f"<ul>{''.join(satirlar)}</ul>" if satirlar else '<div class="bos">Arşiv boş.</div>'
 
     simdi = datetime.now(ZoneInfo("Europe/Istanbul")).strftime("%d.%m.%Y %H:%M")
