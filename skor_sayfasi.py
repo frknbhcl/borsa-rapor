@@ -43,11 +43,11 @@ background:var(--kart);color:var(--yazi);font:inherit}
 .sayac{font-size:12px;color:var(--soluk);margin:10px 2px 6px}
 ol{list-style:none;margin:0;padding:0;background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;overflow:hidden}
 li{border-bottom:1px solid var(--cizgi)}li:last-child{border-bottom:0}
-.satir{display:grid;grid-template-columns:30px 1fr auto auto;gap:10px;align-items:center;width:100%;
+.satir{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;width:100%;
 padding:11px 12px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .sira{color:var(--soluk);font-size:12px;font-variant-numeric:tabular-nums}
-.sembol b{display:block;font-size:15px}.sembol span{display:block;color:var(--soluk);font-size:12px;
-white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.sembol{min-width:0}.sembol>b{display:block;font-size:15px}.sembol>.sirket{display:block;color:var(--soluk);font-size:12px;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}
 .gun{font-size:13px;font-variant-numeric:tabular-nums;text-align:right;min-width:62px}
 .puan{min-width:44px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;border-radius:8px;padding:4px 0;font-size:15px}
 .p-yuk{color:var(--pos)}.p-dus{color:var(--neg)}.p-ort{color:var(--orta)}
@@ -68,12 +68,22 @@ white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
 background:var(--kart);color:var(--vurgu);font:inherit;cursor:pointer}
 .bos{padding:16px;color:var(--soluk);text-align:center}
 footer{color:var(--soluk);font-size:12px;margin-top:24px;line-height:1.5}
-@media (max-width:420px){.detay{padding-left:12px}.satir{grid-template-columns:24px 1fr auto auto;gap:8px}}
+@media (max-width:420px){.detay{padding-left:12px}.satir{grid-template-columns:24px 1fr auto;gap:8px}}
+.katki{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:6px}
+.katki .fazla{font-size:11.5px;color:var(--soluk);align-self:center}
+.katki em{font-style:normal;font-size:11.5px;padding:1px 7px;border-radius:999px;background:var(--bg);border:1px solid var(--cizgi);
+color:var(--soluk);white-space:nowrap}
+.katki em b{font-weight:700;margin-left:3px}
+.katki em.p-yuk b{color:var(--pos)}.katki em.p-dus b{color:var(--neg)}.katki em.p-ort b{color:var(--orta)}
+.katki .ham{font-size:12px;color:var(--soluk)}
+.cip:disabled{opacity:.45;cursor:not-allowed;text-decoration:line-through}
 """
 
 JS = r"""
 const D=JSON.parse(document.getElementById('veri').textContent);
 const M=D.modeller, ANAHTAR='secim_'+D.kod;
+const VAR=new Set(M.filter(m=>m.kapsam>=0.3).map(m=>m.id));
+const hepsiIds=()=>M.filter(m=>VAR.has(m.id)).map(m=>m.id);
 const fmtSayi=(x,b=2)=>x==null?'–':x.toLocaleString('tr-TR',{minimumFractionDigits:b,maximumFractionDigits:b});
 const fmtYuzde=x=>x==null?'–':(x>0?'+':x<0?'−':'')+'%'+fmtSayi(Math.abs(x*100),2);
 const fmtKat=x=>x==null?'–':fmtSayi(x,1)+'x';
@@ -84,8 +94,8 @@ let secili=new Set(), adet=50, acik=new Set();
 function yukle(){
   const h=new URLSearchParams(location.hash.slice(1)).get('m');
   let l=null; try{l=localStorage.getItem(ANAHTAR)}catch(e){}
-  const k=(h??l??M.map(m=>m.id).join(',')).split(',').filter(x=>M.some(m=>m.id===x));
-  secili=new Set(k.length?k:M.map(m=>m.id));
+  const k=(h??l??hepsiIds().join(',')).split(',').filter(x=>VAR.has(x));
+  secili=new Set(k.length?k:hepsiIds());
 }
 function kaydet(){
   const v=[...secili].join(',');
@@ -95,23 +105,25 @@ function kaydet(){
 function cipler(){
   const kap=document.getElementById('modeller');kap.innerHTML='';
   for(const[g,ad]of Object.entries(D.gruplar)){
-    const ms=M.filter(m=>m.grup===g), sadece=ms.length===secili.size&&ms.every(m=>secili.has(m.id));
+    const ms=M.filter(m=>m.grup===g), gecerli=ms.filter(m=>VAR.has(m.id)),
+      sadece=gecerli.length===secili.size&&gecerli.every(m=>secili.has(m.id));
     const d=document.createElement('div');d.className='grup';
     d.innerHTML=`<div class="grup-bas"><span>${ad}</span><button data-g="${g}">${sadece?'Hepsini seç':'Sadece bunlar'}</button></div><div class="cipler"></div>`;
     for(const m of ms){const b=document.createElement('button');b.className='cip';b.textContent=m.ad;b.dataset.id=m.id;
+      if(!VAR.has(m.id)){b.disabled=true;b.title='Bu borsa için yeterli veri yok';}
       b.setAttribute('aria-pressed',secili.has(m.id));d.querySelector('.cipler').appendChild(b);}
     kap.appendChild(d);
   }
-  document.getElementById('secimSay').textContent=`${secili.size}/${M.length} model seçili · puan = seçililerin ortalaması`;
+  document.getElementById('secimSay').textContent=`${secili.size}/${VAR.size} model seçili · puan = seçililerin ortalaması`;
 }
 document.getElementById('modeller').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.id){secili.has(b.dataset.id)?secili.delete(b.dataset.id):secili.add(b.dataset.id);}
-  else if(b.dataset.g){const ms=M.filter(m=>m.grup===b.dataset.g).map(m=>m.id);
-    secili=(ms.length===secili.size&&ms.every(i=>secili.has(i)))?new Set(M.map(m=>m.id)):new Set(ms);}
+  else if(b.dataset.g){const ms=M.filter(m=>m.grup===b.dataset.g&&VAR.has(m.id)).map(m=>m.id);
+    secili=(ms.length===secili.size&&ms.every(i=>secili.has(i)))?new Set(hepsiIds()):new Set(ms);}
   adet=50;kaydet();cipler();ciz();
 });
-document.getElementById('hepsi').onclick=()=>{secili=new Set(M.map(m=>m.id));adet=50;kaydet();cipler();ciz();};
+document.getElementById('hepsi').onclick=()=>{secili=new Set(hepsiIds());adet=50;kaydet();cipler();ciz();};
 document.getElementById('temizle').onclick=()=>{secili=new Set();adet=50;kaydet();cipler();ciz();};
 const idx=Object.fromEntries(M.map((m,i)=>[m.id,i]));
 function bilesik(r){
@@ -130,6 +142,14 @@ function detay(r){
   h+=`<a class="disari" href="${r.url}" target="_blank" rel="noopener">Grafiği aç ↗</a>`;
   return h;
 }
+function katki(r){
+  const ids=[...secili];
+  if(ids.length===1){const m=M[idx[ids[0]]];return `<span class="ham">${m.etiket}: ${bicim(m,r.h[idx[m.id]])}</span>`;}
+  const ps=ids.map(i=>[M[idx[i]],r.p[idx[i]]]).filter(x=>x[1]!=null).sort((a,b)=>b[1]-a[1]);
+  let h=ps.slice(0,3).map(([m,p])=>`<em class="${sinif(p)}">${m.ad}<b>${p}</b></em>`).join('');
+  if(ps.length>3)h+=`<span class="fazla">+${ps.length-3} model</span>`;
+  return h;
+}
 function ciz(){
   const q=document.getElementById('ara').value.trim().toLocaleUpperCase('tr');
   const lk=document.getElementById('likit').checked;
@@ -137,15 +157,15 @@ function ciz(){
   rs.forEach(r=>r._b=bilesik(r));
   const yon=document.getElementById('sirala').value==='artan'?1:-1;
   rs.sort((a,b)=>(a._b==null)-(b._b==null)||yon*((a._b??0)-(b._b??0))||b.oi-a.oi);
-  document.getElementById('sayac').textContent=`${rs.length.toLocaleString('tr-TR')} hisse`;
+  document.getElementById('sayac').textContent=`${rs.length.toLocaleString('tr-TR')} hisse`+(lk?'':` · ${D.hisseler.filter(r=>r.l).length.toLocaleString('tr-TR')} tanesi likit`);
   const ol=document.getElementById('liste');ol.innerHTML='';
   if(!secili.size){ol.innerHTML='<li class="bos">En az bir model seç.</li>';document.getElementById('daha').hidden=true;return;}
   if(!rs.length){ol.innerHTML='<li class="bos">Sonuç yok.</li>';document.getElementById('daha').hidden=true;return;}
   rs.slice(0,adet).forEach((r,i)=>{
     const li=document.createElement('li');
     li.innerHTML=`<button class="satir" aria-expanded="${acik.has(r.s)}"><span class="sira">${i+1}</span>
-      <span class="sembol"><b>${r.s}${r.u?' <span style="display:inline;color:var(--uyari)">⚠</span>':''}</b><span>${r.a}</span></span>
-      <span class="gun ${r.g>0?'pos':r.g<0?'neg':''}">${fmtYuzde(r.g)}</span>
+      <span class="sembol"><b>${r.s}${r.u?' <span style="display:inline;color:var(--uyari)">⚠</span>':''}</b><span class="sirket">${r.a}</span>
+      <span class="katki">${katki(r)}</span></span>
       <span class="puan ${sinif(r._b)}">${r._b??'–'}</span></button>`;
     if(acik.has(r.s)){const d=document.createElement('div');d.className='detay';d.innerHTML=detay(r);li.appendChild(d);}
     li.firstElementChild.onclick=()=>{acik.has(r.s)?acik.delete(r.s):acik.add(r.s);ciz();};
@@ -171,7 +191,9 @@ def _sayi(x, basamak=4):
 
 def skor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, modeller: list, gruplar: dict,
               banner: str, rapor_adi: str, url_fn) -> str:
-    g = m[m["guncel"]].sort_values("ort_islem", ascending=False)
+    g = m[m["gun_sayisi"] > 0].sort_values(["guncel", "ort_islem"], ascending=[False, False])
+    guncel = m[m["guncel"]]
+    kapsam = {md["id"]: float(guncel[f"p_{md['id']}"].notna().mean()) if len(guncel) else 0.0 for md in modeller}
     hisseler = []
     for sembol, r in g.iterrows():
         hisseler.append({
@@ -186,7 +208,8 @@ def skor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, modeller: list, 
         })
     veri = {
         "kod": kod, "para": ayar["para"], "gruplar": gruplar,
-        "modeller": [{k: md[k] for k in ("id", "grup", "ad", "kaynak", "aciklama", "bicim", "etiket")} for md in modeller],
+        "modeller": [{**{k: md[k] for k in ("id", "grup", "ad", "kaynak", "aciklama", "bicim", "etiket")},
+                      "kapsam": round(kapsam[md["id"]], 3)} for md in modeller],
         "hisseler": hisseler,
     }
     js_veri = json.dumps(veri, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
@@ -210,13 +233,14 @@ def skor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, modeller: list, 
 </section>
 <div class="filtre">
   <input type="search" id="ara" placeholder="Hisse ara">
-  <label><input type="checkbox" id="likit" checked> Likit</label>
+  <label title="Son 20 gün ortalama işlem hacmi yeterli olanlar"><input type="checkbox" id="likit"> Sadece likit</label>
   <select id="sirala" aria-label="Sıralama"><option value="azalan">En yüksek puan</option><option value="artan">En düşük puan</option></select>
 </div>
 <div class="sayac" id="sayac"></div>
 <ol id="liste"></ol>
 <button class="daha" id="daha" hidden></button>
 <footer>Her model hisseyi aynı borsadaki likit hisselerle karşılaştırır: 100 = o modele göre en iyi, 0 = en kötü.
+Üstü çizili modeller için bu borsada yeterli veri yok.
 Toplam puan seçtiğin modellerin ortalamasıdır; seçili modellerin yarısından azı hesaplanabiliyorsa puan verilmez.
 Akademik bulgular ortalamalara dayanır ve yayımlandıktan sonra zayıflayabilir. Geçmişe bakıp en iyi görünen
 model kombinasyonunu seçmek de yanıltıcı olabilir. Bu sayfa yatırım tavsiyesi değildir; veri kaynağı Yahoo Finance.</footer>

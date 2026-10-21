@@ -11,7 +11,12 @@ Raporlar sitenin ana sayfasında; `bist.html` ve `abd.html` her zaman en son rap
 
 ## Skor sayfası
 
-Her hisse için akademik çalışmalara dayanan 10 model puanı (0-100) hesaplanır: kısa vade (haftalık/aylık dönüş, hacim primi, MAX etkisi), orta vade (52 hafta zirvesi, 12-1 momentum, 200 gün trendi), uzun vade (düşük oynaklık, düşük beta, düşük özgün oynaklık). Puan, hissenin o modeldeki değerinin aynı borsadaki likit hisseler arasındaki sırasıdır. Sayfada modeller seçilir; toplam puan seçili modellerin ortalamasıdır. Seçim adres çubuğunda (`#m=...`) saklanır.
+Her hisse için akademik çalışmalara dayanan 18 model puanı (0-100) hesaplanır:
+- **Kısa vade:** haftalık dönüş (Lehmann 1990), aylık dönüş (Jegadeesh 1990), hacim primi (Gervais, Kaniel & Mingelgrin 2001), piyango etkisi/MAX (Bali, Cakici & Whitelaw 2011), düşük çarpıklık (Amaya vd. 2015)
+- **Orta vade:** 52 hafta zirvesi (George & Hwang 2004), 12-1 momentum (Jegadeesh & Titman 1993), 200 gün trendi (Moskowitz, Ooi & Pedersen 2012), kalıntı momentum (Blitz, Huij & Martens 2011), sürekli momentum (Da, Gurun & Warachka 2014)
+- **Uzun vade:** düşük oynaklık (Blitz & van Vliet 2007), düşük beta (Frazzini & Pedersen 2014), düşük özgün oynaklık (Ang vd. 2006), düşük korelasyon (Asness, Frazzini, Gormsen & Pedersen 2020), illikidite primi (Amihud 2002), değer E/P ve B/M (Basu 1977; Fama & French 1992), kârlılık ROE (Hou, Xue & Zhang 2015)
+
+Puan, hissenin o modeldeki değerinin aynı borsadaki likit hisseler arasındaki sırasıdır. Sayfada modeller seçilir; toplam puan seçili modellerin ortalamasıdır. Seçim adres çubuğunda (`#m=...`) saklanır. Temel veriler (E/P, B/M, ROE) Yahoo hisse tarayıcısından gelir; bir borsada yeterli veri yoksa ilgili model devre dışı görünür.
 
 ## Dosyalar
 

@@ -153,6 +153,11 @@ def yahoo_tarama(borsalar: list[str]) -> pd.DataFrame:
                 "sembol": k.get("symbol"),
                 "ad": k.get("longName") or k.get("shortName") or "",
                 "piyasa_degeri": k.get("marketCap"),
+                # Temel veriler (değer/kârlılık modelleri için; Yahoo vermezse boş kalır)
+                "eps": k.get("epsTrailingTwelveMonths"),
+                "defter": k.get("bookValue"),
+                "para": k.get("currency"),
+                "fin_para": k.get("financialCurrency"),
             })
         offset += len(kayitlar)
         if offset >= toplam:
@@ -187,8 +192,9 @@ def hisse_listesi(kod: str, ayar: dict, tam: bool) -> pd.DataFrame:
     yol = VERI / f"hisseler_{kod}.csv"
     if yol.exists() and not tam:
         yas = datetime.now() - datetime.fromtimestamp(yol.stat().st_mtime)
-        if yas < timedelta(days=LISTE_YENILEME_GUN):
-            return pd.read_csv(yol, dtype={"sembol": str, "ad": str})
+        onbellek = pd.read_csv(yol, dtype={"sembol": str, "ad": str})
+        if yas < timedelta(days=LISTE_YENILEME_GUN) and "eps" in onbellek.columns:
+            return onbellek
 
     yaz(f"  Hisse listesi yenileniyor ({ayar['ad']})...")
     liste = None
@@ -499,10 +505,36 @@ MODELLER = [
      "kaynak": "Ang, Hodrick, Xing & Zhang (2006)",
      "aciklama": "Endeksten bağımsız oynaklığı yüksek hisseler geride kalıyor. Ham değer: endeks etkisi çıkarıldıktan sonraki yıllık oynaklık (son 3 ay)."},
 ]
+MODELLER += [
+    {"id": "carpiklik", "etiket": "son 1 ay çarpıklık", "grup": "kisa", "ad": "Düşük çarpıklık", "yon": -1, "bicim": "sayi",
+     "kaynak": "Amaya, Christoffersen, Jacobs & Vasquez (2015)",
+     "aciklama": "Getiri dağılımı sağa çarpık (ara sıra büyük sıçrayan) hisseler sonraki hafta geride kalıyor. Makale gün içi veriyle haftalık çarpıklık kullanıyor; burada son 21 günün günlük getirileriyle yaklaşık hesaplanıyor."},
+    {"id": "kalinti_mom", "etiket": "kalıntı momentum (t-istatistiği)", "grup": "orta", "ad": "Kalıntı momentum", "yon": 1, "bicim": "sayi",
+     "kaynak": "Blitz, Huij & Martens (2011)",
+     "aciklama": "Momentumu endeksin etkisinden arındırır: hissenin piyasadan bağımsız kısmının son 12 ayda (son ay hariç) ne kadar güçlü olduğuna bakar. Klasik momentuma göre riske göre getirisi yaklaşık iki kat. Makale Fama-French 3 faktör ve aylık veri kullanıyor; burada endeks modeli ve günlük veriyle uyarlandı."},
+    {"id": "surekli_mom", "etiket": "bilgi kesikliği (ID)", "grup": "orta", "ad": "Sürekli momentum", "yon": 1, "bicim": "sayi",
+     "kaynak": "Da, Gurun & Warachka (2014)",
+     "aciklama": "'Haşlanan kurbağa' etkisi: yükselişi birkaç sert sıçrama yerine çok sayıda küçük adımla gelen hisselerde momentum daha uzun sürüyor. Puan, 12-1 ay momentumu ile sürekliliğin (düşük ID) ortalamasıdır. ID = getiri işareti × (düşen gün oranı − yükselen gün oranı)."},
+    {"id": "dusuk_kor", "etiket": "endeksle korelasyon (1 yıl)", "grup": "uzun", "ad": "Düşük korelasyon", "yon": -1, "bicim": "sayi",
+     "kaynak": "Asness, Frazzini, Gormsen & Pedersen (2020)",
+     "aciklama": "'Korelasyona karşı bahis': endeksle daha az birlikte hareket eden hisseler, oynaklık sabit tutulduğunda bile daha iyi riske göre getiri sağlıyor."},
+    {"id": "illikidite", "etiket": "Amihud illikiditesi (×10⁹)", "grup": "uzun", "ad": "İllikidite primi", "yon": 1, "bicim": "sayi",
+     "kaynak": "Amihud (2002)",
+     "aciklama": "Az işlem gören, alınıp satılması zor hisseler bu zorluğun karşılığı olarak ortalamada daha yüksek getiri sağlıyor. Dikkat: bu hisselerde alım-satım maliyeti de yüksektir."},
+    {"id": "deger_fk", "etiket": "kazanç getirisi (E/P)", "grup": "uzun", "ad": "Değer: kazanç/fiyat", "yon": 1, "bicim": "yuzde",
+     "kaynak": "Basu (1977); Fama & French (1992)",
+     "aciklama": "Fiyatına göre çok kâr eden (düşük F/K'lı) hisseler uzun vadede daha iyi getiri sağlıyor. Veri Yahoo'nun son 12 ay hisse başı kârından. BIST'te 2023 sonundan beri enflasyon muhasebesi (TMS 29) kâr rakamlarını değiştirdi; bankalar farklı hesaplanıyor."},
+    {"id": "deger_pddd", "etiket": "defter/piyasa (B/M)", "grup": "uzun", "ad": "Değer: defter/piyasa", "yon": 1, "bicim": "sayi",
+     "kaynak": "Fama & French (1992, 1993)",
+     "aciklama": "Piyasa değeri özsermayesine göre düşük (düşük PD/DD) hisseler uzun vadede daha iyi getiri sağlıyor. BIST'te TMS 29 sonrası özsermaye rakamları eski dönemlerle karşılaştırılamaz."},
+    {"id": "karlilik", "etiket": "özsermaye kârlılığı (ROE)", "grup": "uzun", "ad": "Kârlılık (ROE)", "yon": 1, "bicim": "yuzde",
+     "kaynak": "Hou, Xue & Zhang (2015); Fama & French (2015)",
+     "aciklama": "Özsermayesine göre daha kârlı şirketler daha yüksek getiri sağlıyor; modern faktör modellerinin (q-faktör, beş faktör) temel unsuru. Hesap: son 12 ay hisse başı kâr ÷ hisse başı defter değeri."},
+]
 GRUPLAR = {"kisa": "Kısa vade · 1 hafta–1 ay", "orta": "Orta vade · 3–12 ay", "uzun": "Uzun vade · 1 yıl+"}
 
 
-def model_degerleri(c, h, v, getiri, endeks) -> pd.DataFrame:
+def model_degerleri(c, h, v, getiri, endeks, temel: pd.DataFrame | None = None) -> pd.DataFrame:
     """Her model için ham değer (hisse başına bir sayı)."""
     son = c.iloc[-1]
     ham = pd.DataFrame(index=c.columns)
@@ -539,6 +571,64 @@ def model_degerleri(c, h, v, getiri, endeks) -> pd.DataFrame:
         R63, I63 = getiri.iloc[-63:], I.iloc[-63:]
         artik = R63 - np.outer(I63.to_numpy(), beta.to_numpy())
         ham["dusuk_ioyn"] = (artik.std() * np.sqrt(252)).where(artik.notna().sum() >= 40)
+
+        # Endeksle korelasyon (1 yıl, ikili tam günler)
+        sd_r = np.sqrt(((Rm - ort_r) ** 2).sum() / (say - 1))
+        sd_i = np.sqrt(var)
+        ham["dusuk_kor"] = (kov / (sd_r * sd_i)).where(say >= 120)
+
+        # Kalıntı momentum: 12-1 ay penceresinde endeks modeli kalıntılarının toplamı ÷ standart sapması
+        if n >= 253:
+            Rk = getiri.iloc[-252:-21]
+            Ik = (e / e.shift(1) - 1).iloc[-252:-21]
+            mk = Rk.notna() & Ik.notna().to_numpy()[:, None]
+            Rkm = Rk.where(mk)
+            Ikm = mk.mul(Ik.fillna(0), axis=0).where(mk)
+            sk = mk.sum()
+            ork, oik = Rkm.mean(), Ikm.mean()
+            bk = ((Rkm - ork) * (Ikm - oik)).sum() / ((Ikm - oik) ** 2).sum()
+            # Kalıntı = getiri − beta × endeks getirisi (kesişim dahil bırakılır; aynı pencerede
+            # kesişimli kalıntıların toplamı tanım gereği sıfırdır). Sonuç: piyasadan bağımsız
+            # getirinin t-istatistiği.
+            kal = Rkm - Ikm * bk
+            ham["kalinti_mom"] = (kal.mean() / kal.std() * np.sqrt(sk)).where(sk >= 150)
+        else:
+            ham["kalinti_mom"] = np.nan
+    else:
+        ham["dusuk_kor"] = np.nan
+        ham["kalinti_mom"] = np.nan
+
+    # Sürekli momentum (Da, Gurun & Warachka 2014): ID = işaret(PRET) × (%düşen − %yükselen)
+    if n >= 253:
+        P = getiri.iloc[-252:-21]
+        say_p = P.notna().sum()
+        pos = (P > 0).sum() / say_p
+        neg = (P < 0).sum() / say_p
+        ham["surekli_mom"] = (np.sign(ham["momentum"]) * (neg - pos)).where(say_p >= 150)
+    else:
+        ham["surekli_mom"] = np.nan
+
+    # Gerçekleşmiş çarpıklık (son 21 gün)
+    son21 = getiri.iloc[-21:]
+    ham["carpiklik"] = son21.skew().where(son21.notna().sum() >= 15)
+
+    # Amihud illikiditesi: ortalama |getiri| / işlem hacmi (para cinsinden), son 1 yıl
+    tutar = (c * v).iloc[-252:]
+    oran = getiri.iloc[-252:].abs() / tutar.where(tutar > 0)
+    ham["illikidite"] = (oran.mean() * 1e9).where(oran.notna().sum() >= 120)
+
+    # Temel veriler (Yahoo tarayıcısından)
+    for k in ("deger_fk", "deger_pddd", "karlilik"):
+        ham[k] = np.nan
+    if temel is not None and "eps" in temel.columns:
+        t = temel.reindex(ham.index)
+        eps = pd.to_numeric(t["eps"], errors="coerce")
+        defter = pd.to_numeric(t["defter"], errors="coerce")
+        ayni_para = (t["fin_para"].isna() | t["para"].isna() | (t["fin_para"] == t["para"]))
+        fiyat = son.where(son > 0)
+        ham["deger_fk"] = (eps / fiyat).where(ayni_para)
+        ham["deger_pddd"] = (defter / fiyat).where(ayni_para & (defter > 0))
+        ham["karlilik"] = (eps / defter).where(defter > 0)
     return ham.replace([np.inf, -np.inf], np.nan)
 
 
@@ -555,7 +645,9 @@ def puanla(deger: pd.Series, yon: int, referans: pd.Series) -> pd.Series:
     return pd.Series(np.where(np.isnan(x), np.nan, np.round(puan)), index=deger.index)
 
 
-def hesapla(veri: dict, endeks: pd.Series | None, ayar: dict, adlar: pd.Series):
+def hesapla(veri: dict, endeks: pd.Series | None, ayar: dict, liste: pd.DataFrame):
+    temel = liste.drop_duplicates("sembol").set_index("sembol")
+    adlar = temel["ad"]
     c, h, l, v = (veri[a] for a in ("Close", "High", "Low", "Volume"))
 
     # Hisselerin en az yarısının işlem gördüğü günleri piyasa günü say
@@ -644,10 +736,14 @@ def hesapla(veri: dict, endeks: pd.Series | None, ayar: dict, adlar: pd.Series):
                   & (m["kapanis"] >= ayar["min_fiyat"]))
 
     # Akademik modellerin ham değerleri ve 0-100 puanları
-    ham = model_degerleri(c, h, v, getiri, endeks)
+    ham = model_degerleri(c, h, v, getiri, endeks, temel)
+    referans = m["likit"] & m["guncel"]
     for mdl in MODELLER:
         m[f"h_{mdl['id']}"] = ham[mdl["id"]]
-        m[f"p_{mdl['id']}"] = puanla(ham[mdl["id"]], mdl["yon"], m["likit"] & m["guncel"])
+        m[f"p_{mdl['id']}"] = puanla(ham[mdl["id"]], mdl["yon"], referans)
+    # Sürekli momentum puanı: momentum sırası ile süreklilik (düşük ID) sırasının ortalaması
+    sureklilik = puanla(ham["surekli_mom"], -1, referans)
+    m["p_surekli_mom"] = ((m["p_momentum"] + sureklilik) / 2).round()
     return m, son_tarih
 
 
@@ -828,7 +924,7 @@ def tum_tablo(m: pd.DataFrame, kod: str, para: str) -> str:
                         f'data-u="{int(bool(r["uyari"]))}">' + "".join(hucreler) + "</tr>")
     return (
         '<div class="arac"><input type="search" id="ara" placeholder="Sembol ya da şirket ara">'
-        '<label><input type="checkbox" id="likit" checked> Sadece likit hisseler</label>'
+        '<label><input type="checkbox" id="likit"> Sadece likit hisseler</label>'
         '<label><input type="checkbox" id="uyarili"> Sadece uyarılı</label>'
         '<span class="alt" id="sayac"></span></div>'
         f'<div class="tablo-kap"><table id="tum"><thead>{bas}</thead>'
@@ -943,12 +1039,11 @@ def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
     yaz(f"\n=== {ayar['ad']} ===")
     liste = hisse_listesi(kod, ayar, tam)
     yaz(f"  {len(liste)} hisse")
-    adlar = liste.set_index("sembol")["ad"]
     veri = fiyatlari_guncelle(kod, liste["sembol"].tolist(), tam)
     endeksler = endeksleri_indir(ayar)
     endeks = endeksler.get(ayar["endeks"][0])
 
-    m, son_tarih = hesapla(veri, endeks, ayar, adlar)
+    m, son_tarih = hesapla(veri, endeks, ayar, liste)
 
     banner = ""
     simdi = datetime.now(ZoneInfo(ayar["saat_dilimi"]))
