@@ -957,7 +957,10 @@ def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
         banner = ('<div class="banner">Piyasa henüz kapanmadı: bugünün verileri anlık ve kesinleşmemiş. '
                   "Kesin rapor için kapanıştan sonra tekrar çalıştır.</div>")
     guncel_sayi = int(m["guncel"].sum())
-    if guncel_sayi < 0.9 * len(liste):
+    if banner and guncel_sayi < 0.9 * len(liste):
+        # Seans sürerken az işlem gören hisselerin bugünkü verisi henüz oluşmamış olabilir
+        banner = banner.replace("</div>", f" Bugün henüz işlem görmeyen {len(liste) - guncel_sayi} hisse listede yok.</div>", 1)
+    elif guncel_sayi < 0.9 * len(liste):
         banner += (f'<div class="banner"><b>Rapor eksik:</b> listedeki {len(liste)} hissenin yalnızca '
                    f"{guncel_sayi} tanesi için güncel veri var. Yahoo indirmeyi yavaşlatmış olabilir. "
                    "Script'i bir süre sonra tekrar çalıştır; eksik hisseler tamamlanır.</div>")
