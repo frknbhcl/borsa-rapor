@@ -54,6 +54,17 @@ jobs:
       - name: Raporu oluştur
         run: python gunluk_rapor.py ${{ steps.secim.outputs.piyasa }} --acma
 
+      - name: Verileri bağımsız olarak doğrula
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 30
+        run: |
+          for f in raporlar/*_tum.csv; do
+            [ -e "$f" ] || continue
+            kod=$(basename "$f" | sed -E 's/^[0-9-]+_([A-Z]+)_tum\.csv$/\1/' | tr 'A-Z' 'a-z')
+            python dogrula.py --piyasa "$kod" --csv "$f" --cikti "${f%_tum.csv}_dogrulama.html" --json "${f%_tum.csv}_dogrulama.json" || true
+          done
+
       - name: Fiyat önbelleğini kaydet
         if: always()
         uses: actions/cache/save@v4

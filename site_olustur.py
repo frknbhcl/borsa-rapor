@@ -40,7 +40,7 @@ h1{font-size:26px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 10px;color:var(
 @media (max-width:480px){.kartlar{grid-template-columns:1fr}}
 .kart{display:block;background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:18px}
 .kart b{display:block;font-size:18px;margin-bottom:4px}
-.kart .linkler{display:flex;gap:18px;margin-top:12px}
+.kart .linkler{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px}
 .kart .ok{color:var(--vurgu);font-weight:600;font-size:15px;text-decoration:none}
 .kart .ok.ikincil{font-weight:500}
 .bos{background:var(--kart);border:1px dashed var(--cizgi);border-radius:12px;padding:18px;color:var(--soluk)}
@@ -82,7 +82,8 @@ def main() -> None:
                 icerik = geri_linki_ekle(dosya.read_text(encoding="utf-8"), "../index.html",
                                          skor if (kaynak / skor).exists() else None)
                 (arsiv / dosya.name).write_text(icerik, encoding="utf-8")
-            elif SKOR_KALIP.match(dosya.name) or dosya.name.endswith("_tum.csv"):
+            elif (SKOR_KALIP.match(dosya.name) or dosya.name.endswith("_tum.csv")
+                  or dosya.name.endswith("_dogrulama.html") or dosya.name.endswith("_dogrulama.json")):
                 shutil.copy2(dosya, arsiv / dosya.name)
 
     # 2) Eski raporları temizle
@@ -117,6 +118,10 @@ def main() -> None:
                 skor = skor.replace('href="../index.html"', 'href="index.html"').replace(f'href="{ad}"', f'href="{k}.html"')
                 (site / f"skor_{k}.html").write_text(skor, encoding="utf-8")
                 skor_link = f'<a class="ok" href="skor_{k}.html">Skorlar →</a>'
+            dogrulama_ad = ad.replace(".html", "_dogrulama.html")
+            if (arsiv / dogrulama_ad).exists():
+                shutil.copy2(arsiv / dogrulama_ad, site / f"dogrulama_{k}.html")
+                skor_link += f'<a class="ok ikincil" href="dogrulama_{k}.html">Doğrulama</a>'
             kartlar.append(
                 f'<div class="kart"><b>{AD[kod]}</b><span class="alt">{tarih_metni(tarih)}</span>'
                 f'<span class="linkler">{skor_link}<a class="ok ikincil" href="{k}.html">Günlük rapor</a></span></div>')
@@ -140,6 +145,9 @@ def main() -> None:
             if (arsiv / skor).exists():
                 linkler.append(f'<a href="raporlar/{html.escape(skor)}">Skorlar</a>')
             linkler.append(f'<a href="raporlar/{html.escape(ad)}">Rapor</a>')
+            dog = ad.replace(".html", "_dogrulama.html")
+            if (arsiv / dog).exists():
+                linkler.append(f'<a href="raporlar/{html.escape(dog)}">Doğrulama</a>')
             csv = ad.replace(".html", "_tum.csv")
             if (arsiv / csv).exists():
                 linkler.append(f'<a href="raporlar/{html.escape(csv)}" title="{k} tüm hisseler (Excel)">CSV</a>')

@@ -22,6 +22,7 @@ Puan, hissenin o modeldeki değerinin aynı borsadaki likit hisseler arasındaki
 
 - `gunluk_rapor.py`: veriyi indirir, göstergeleri hesaplar, HTML ve CSV rapor üretir. Bilgisayarda da çalışır: `python gunluk_rapor.py bist`
 - `skor_sayfasi.py`: etkileşimli skor sayfası
+- `dogrula.py`: bağımsız doğrulama; her çalıştırmada örnek hisselerin göstergelerini sıfırdan yeniden hesaplar ve fiyatları Yahoo dışı kaynaklarla (ABD: Stooq/Nasdaq, BIST: İş Yatırım) karşılaştırır. Sonuç sitede "Doğrulama" sayfasında. Testler: `python -m unittest test_dogrula`
 - `site_olustur.py`: raporları siteye ekler, 45 günden eski olanları siler, ana sayfayı üretir
 - `.github/workflows/rapor.yml`: zamanlama ve yayınlama
 
