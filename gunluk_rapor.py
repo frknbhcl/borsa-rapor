@@ -193,7 +193,8 @@ def hisse_listesi(kod: str, ayar: dict, tam: bool) -> pd.DataFrame:
     if yol.exists() and not tam:
         yas = datetime.now() - datetime.fromtimestamp(yol.stat().st_mtime)
         onbellek = pd.read_csv(yol, dtype={"sembol": str, "ad": str})
-        if yas < timedelta(days=LISTE_YENILEME_GUN) and "eps" in onbellek.columns:
+        filtreli = kod != "abd" or not onbellek["sembol"].str.match(r"^[A-Z]{4}[WRU]$").any()
+        if yas < timedelta(days=LISTE_YENILEME_GUN) and "eps" in onbellek.columns and filtreli:
             return onbellek
 
     yaz(f"  Hisse listesi yenileniyor ({ayar['ad']})...")
@@ -223,6 +224,9 @@ def hisse_listesi(kod: str, ayar: dict, tam: bool) -> pd.DataFrame:
     liste = liste.dropna(subset=["sembol"])
     liste["sembol"] = liste["sembol"].str.strip().str.upper()
     liste = liste[liste["sembol"].str.match(ayar["sembol_kalibi"])]
+    if kod == "abd":
+        # Nasdaq'ta 5 harfli sembolün son harfi W/R/U ise varant, hak ya da birimdir (hisse değil)
+        liste = liste[~liste["sembol"].str.match(r"^[A-Z]{4}[WRU]$")]
     liste = liste[~liste["ad"].fillna("").str.contains(ISTISNA_ADLAR)]
     liste = liste.drop_duplicates("sembol").sort_values("sembol").reset_index(drop=True)
     VERI.mkdir(parents=True, exist_ok=True)

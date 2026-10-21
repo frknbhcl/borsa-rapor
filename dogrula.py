@@ -766,7 +766,12 @@ def dogrula(args) -> dict:
             if s2 is not None:
                 s, kaynak = s2, "Nasdaq"
             else:
-                h = f"Stooq: {h}; Nasdaq: {h2}"
+                # Yedek: S&P 500'ü birebir izleyen SPY fonu (Nasdaq, ETF sınıfı)
+                s3, h3 = bk.nasdaq("SPY", "etf")
+                if s3 is not None:
+                    s, kaynak = s3, "Nasdaq (SPY, S&P 500 fonu)"
+                else:
+                    h = f"Stooq: {h}; Nasdaq SPX: {h2}; Nasdaq SPY: {h3}"
         endeks_bag = s
         sonuc["endeks_bagimsiz"] = {"kaynak": kaynak if s is not None else None,
                                     "durum": "alındı" if s is not None else "ulaşılamadı",
