@@ -916,7 +916,7 @@ def rapor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, endeksler: dict
            f'<p class="alt">{html.escape(eski_liste)}</p></details>' if len(eski) else "")
     )
 
-    olusturma = datetime.now().strftime("%d.%m.%Y %H:%M")
+    olusturma = datetime.now(ZoneInfo("Europe/Istanbul")).strftime("%d.%m.%Y %H:%M")
     return f"""<!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{ayar['ad']} · {son_tarih:%d.%m.%Y}</title><style>{CSS}</style></head>

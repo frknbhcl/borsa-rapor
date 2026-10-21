@@ -6,6 +6,7 @@ import html
 import json
 import math
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -192,7 +193,7 @@ def skor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, modeller: list, 
     bilgi = "".join(
         f"<dt>{html.escape(md['ad'])}</dt><dd>{html.escape(md['aciklama'])} <i>Kaynak: {html.escape(md['kaynak'])}.</i></dd>"
         for md in modeller)
-    olusturma = datetime.now().strftime("%d.%m.%Y %H:%M")
+    olusturma = datetime.now(ZoneInfo("Europe/Istanbul")).strftime("%d.%m.%Y %H:%M")
     return f"""<!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
