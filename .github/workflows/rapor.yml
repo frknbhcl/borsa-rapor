@@ -1,0 +1,86 @@
+name: Günlük rapor
+
+on:
+  schedule:
+    - cron: "40 15 * * 1-5"   # BIST: hafta içi 18:40 (TR), kapanıştan sonra
+    - cron: "40 21 * * 1-5"   # ABD: hafta içi 00:40 (TR), New York kapanışından sonra
+  workflow_dispatch:           # GitHub uygulamasından elle çalıştırmak için
+    inputs:
+      piyasa:
+        description: "Hangi piyasa?"
+        type: choice
+        options: [hepsi, bist, abd]
+        default: hepsi
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rapor
+  cancel-in-progress: false
+
+jobs:
+  rapor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Piyasayı seç
+        id: secim
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "piyasa=${{ inputs.piyasa }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "40 15 * * 1-5" ]; then
+            echo "piyasa=bist" >> "$GITHUB_OUTPUT"
+          else
+            echo "piyasa=abd" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fiyat önbelleğini geri yükle
+        uses: actions/cache/restore@v4
+        with:
+          path: veri
+          key: veri-${{ github.run_id }}
+          restore-keys: veri-
+
+      - name: Raporu oluştur
+        run: python gunluk_rapor.py ${{ steps.secim.outputs.piyasa }} --acma
+
+      - name: Fiyat önbelleğini kaydet
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: veri
+          key: veri-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Önceki raporları al
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: site
+
+      - name: Siteyi hazırla
+        run: |
+          mkdir -p site
+          rm -rf site/.git
+          python site_olustur.py raporlar site
+
+      - name: Siteyi yayınla
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd site
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="rapor-botu" -c user.email="rapor-botu@users.noreply.github.com" \
+            commit -q -m "Rapor: $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" gh-pages
