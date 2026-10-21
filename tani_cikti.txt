@@ -1,0 +1,21 @@
+^GSPC tz America/New_York n 277 ilk [Timestamp('2025-09-16 00:00:00-0400', tz='America/New_York'), Timestamp('2025-09-17 00:00:00-0400', tz='America/New_York')] son [Timestamp('2026-10-19 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-20 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-21 00:00:00-0400', tz='America/New_York')]
+AAPL tz America/New_York n 277 ilk [Timestamp('2025-09-16 00:00:00-0400', tz='America/New_York'), Timestamp('2025-09-17 00:00:00-0400', tz='America/New_York')] son [Timestamp('2026-10-19 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-20 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-21 00:00:00-0400', tz='America/New_York')]
+XOM tz America/New_York n 277 ilk [Timestamp('2025-09-16 00:00:00-0400', tz='America/New_York'), Timestamp('2025-09-17 00:00:00-0400', tz='America/New_York')] son [Timestamp('2026-10-19 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-20 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-21 00:00:00-0400', tz='America/New_York')]
+BRK-B tz America/New_York n 277 ilk [Timestamp('2025-09-16 00:00:00-0400', tz='America/New_York'), Timestamp('2025-09-17 00:00:00-0400', tz='America/New_York')] son [Timestamp('2026-10-19 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-20 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-21 00:00:00-0400', tz='America/New_York')]
+MSFT tz America/New_York n 277 ilk [Timestamp('2025-09-16 00:00:00-0400', tz='America/New_York'), Timestamp('2025-09-17 00:00:00-0400', tz='America/New_York')] son [Timestamp('2026-10-19 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-20 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-21 00:00:00-0400', tz='America/New_York')]
+KO tz America/New_York n 277 ilk [Timestamp('2025-09-16 00:00:00-0400', tz='America/New_York'), Timestamp('2025-09-17 00:00:00-0400', tz='America/New_York')] son [Timestamp('2026-10-19 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-20 00:00:00-0400', tz='America/New_York'), Timestamp('2026-10-21 00:00:00-0400', tz='America/New_York')]
+AAPL kor0 -0.02 kor_lag+1 -0.152 kor_lag-1 -0.207
+XOM kor0 -0.505 kor_lag+1 -0.102 kor_lag-1 -0.017
+BRK-B kor0 -0.091 kor_lag+1 0.184 kor_lag-1 0.067
+MSFT kor0 0.592 kor_lag+1 -0.157 kor_lag-1 0.142
+KO kor0 -0.262 kor_lag+1 0.047 kor_lag-1 -0.07
+_indir kolonlar ['^GSPC', 'AAPL', 'XOM', 'BRK-B', 'MSFT', 'KO'] n 277
+^GSPC sıralı vs havuz max fark 0.05029296875 ortak 277
+AAPL sıralı vs havuz max fark 0.03619384765625 ortak 277
+XOM sıralı vs havuz max fark 3.0517578125e-05 ortak 277
+BRK-B sıralı vs havuz max fark 0.0 ortak 277
+MSFT sıralı vs havuz max fark 0.135009765625 ortak 277
+KO sıralı vs havuz max fark 0.00499725341796875 ortak 277
+200lük havuzda AAPL max fark 0.0697021484375
+200lük havuzda XOM max fark 0.0800018310546875
+son 30 günü birebir aynı olan hisse sayısı: 0
