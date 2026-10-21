@@ -167,7 +167,7 @@ def main() -> None:
 <div class="kartlar">{''.join(kartlar)}</div>
 <h2>Arşiv (son {SAKLAMA_GUN} gün)</h2>
 {arsiv_html}
-<footer>Raporlar hafta içi her gün otomatik oluşur: BIST 18:40, ABD gece 00:40 civarı.
+<footer>Raporlar hafta içi her gün otomatik oluşur: BIST akşam 18:40'tan, ABD gece 00:40'tan itibaren (GitHub bazen birkaç saat geciktirebiliyor).
 Veri kaynağı Yahoo Finance; yatırım tavsiyesi değildir.</footer>
 </main></body></html>""", encoding="utf-8")
     (site / ".nojekyll").write_text("", encoding="utf-8")

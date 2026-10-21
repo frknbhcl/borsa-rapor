@@ -3,8 +3,9 @@
 Borsa İstanbul ve ABD borsalarındaki tüm hisseler için günlük, etkileşimli rapor.
 GitHub Actions her hafta içi raporu otomatik üretir ve GitHub Pages'te yayınlar.
 
-- **BIST:** hafta içi 18:40 (TR)
-- **ABD:** hafta içi gece 00:40 (TR)
+- **BIST:** hafta içi 18:40 (TR); yedek 20:40, 22:40
+- **ABD:** hafta içi gece 00:40 (TR); yedek 02:40, 05:40, 07:40
+- GitHub zamanlanmış çalıştırmaları geciktirebildiği için yedek saatler var; o günün kapanış raporu yayındaysa yedek çalıştırma hiçbir şey yapmaz.
 - **Elle çalıştırma:** Actions → "Günlük rapor" → Run workflow
 
 Raporlar sitenin ana sayfasında; `bist.html` ve `abd.html` her zaman en son rapor, `skor_bist.html` ve `skor_abd.html` en son skor sayfasıdır.

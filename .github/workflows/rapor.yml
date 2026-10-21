@@ -1,9 +1,13 @@
 name: Günlük rapor
 
 on:
+  # GitHub zamanlanmış çalıştırmaları saatlerce geciktirebiliyor ya da atlayabiliyor. Bu yüzden
+  # her borsa için yedek saatler var; o günün kapanış raporu zaten yayındaysa yedek çalıştırma
+  # hiçbir şey yapmadan biter.
   schedule:
-    - cron: "40 15 * * 1-5"   # BIST: hafta içi 18:40 (TR), kapanıştan sonra
-    - cron: "40 21 * * 1-5"   # ABD: hafta içi 00:40 (TR), New York kapanışından sonra
+    - cron: "40 15,17,19 * * 1-5"   # BIST: hafta içi 18:40, 20:40, 22:40 (TR)
+    - cron: "40 21,23 * * 1-5"      # ABD: hafta içi 00:40, 02:40 (TR)
+    - cron: "40 2,4 * * 2-6"        # ABD yedek: 05:40, 07:40 (TR)
   workflow_dispatch:           # GitHub uygulamasından elle çalıştırmak için
     inputs:
       piyasa:
@@ -26,25 +30,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Yayındaki raporları al
+        uses: actions/checkout@v4
+        continue-on-error: true
         with:
-          python-version: "3.12"
-          cache: pip
-
-      - run: pip install -r requirements.txt
+          ref: gh-pages
+          path: site
 
       - name: Piyasayı seç
         id: secim
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "piyasa=${{ inputs.piyasa }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "40 15 * * 1-5" ]; then
-            echo "piyasa=bist" >> "$GITHUB_OUTPUT"
+            piyasa="${{ inputs.piyasa }}"
+          elif [ "${{ github.event.schedule }}" = "40 15,17,19 * * 1-5" ]; then
+            piyasa=bist
           else
-            echo "piyasa=abd" >> "$GITHUB_OUTPUT"
+            piyasa=abd
           fi
+          echo "piyasa=$piyasa" >> "$GITHUB_OUTPUT"
+          calis=true
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            calis=$(python3 - "$piyasa" <<'PY'
+          import sys, datetime as dt
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+          kod = sys.argv[1]
+          if kod == "bist":
+              simdi = dt.datetime.now(ZoneInfo("Europe/Istanbul")); kapanis = (18, 20)
+          else:
+              simdi = dt.datetime.now(ZoneInfo("America/New_York")); kapanis = (16, 15)
+          gun = simdi.date()
+          if (simdi.hour, simdi.minute) < kapanis:
+              gun -= dt.timedelta(days=1)
+          while gun.weekday() >= 5:
+              gun -= dt.timedelta(days=1)
+          f = Path("site/raporlar") / f"{gun:%Y-%m-%d}_{kod.upper()}.html"
+          kesin = f.exists() and "Piyasa henüz kapanmadı" not in f.read_text(encoding="utf-8")
+          print("false" if kesin else "true")
+          PY
+          )
+          fi
+          echo "calis=$calis" >> "$GITHUB_OUTPUT"
+          echo "Piyasa: $piyasa, çalıştırılacak mı: $calis"
+
+      - uses: actions/setup-python@v5
+        if: steps.secim.outputs.calis == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+        if: steps.secim.outputs.calis == 'true'
 
       - name: Fiyat önbelleğini geri yükle
+        if: steps.secim.outputs.calis == 'true'
         uses: actions/cache/restore@v4
         with:
           path: veri
@@ -52,10 +91,11 @@ jobs:
           restore-keys: veri-
 
       - name: Raporu oluştur
+        if: steps.secim.outputs.calis == 'true'
         run: python gunluk_rapor.py ${{ steps.secim.outputs.piyasa }} --acma
 
       - name: Verileri bağımsız olarak doğrula
-        if: always()
+        if: always() && steps.secim.outputs.calis == 'true'
         continue-on-error: true
         timeout-minutes: 30
         run: |
@@ -66,26 +106,21 @@ jobs:
           done
 
       - name: Fiyat önbelleğini kaydet
-        if: always()
+        if: always() && steps.secim.outputs.calis == 'true'
         uses: actions/cache/save@v4
         with:
           path: veri
           key: veri-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Önceki raporları al
-        uses: actions/checkout@v4
-        continue-on-error: true
-        with:
-          ref: gh-pages
-          path: site
-
       - name: Siteyi hazırla
+        if: steps.secim.outputs.calis == 'true'
         run: |
           mkdir -p site
           rm -rf site/.git
           python site_olustur.py raporlar site
 
       - name: Siteyi yayınla
+        if: steps.secim.outputs.calis == 'true'
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
