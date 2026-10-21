@@ -628,7 +628,9 @@ def model_degerleri(c, h, v, getiri, endeks, temel: pd.DataFrame | None = None) 
         fiyat = son.where(son > 0)
         ham["deger_fk"] = (eps / fiyat).where(ayni_para)
         ham["deger_pddd"] = (defter / fiyat).where(ayni_para & (defter > 0))
-        ham["karlilik"] = (eps / defter).where(defter > 0)
+        # Kâr ve defter değeri farklı para birimlerinde raporlanabiliyor (ör. THYAO: fiyat TL,
+        # finansallar USD); karışmasın diye para birimi uyuşmayanlar hesaplanmaz.
+        ham["karlilik"] = (eps / defter).where(ayni_para & (defter > 0))
     return ham.replace([np.inf, -np.inf], np.nan)
 
 
