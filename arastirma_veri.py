@@ -117,7 +117,19 @@ def sec() -> None:
     s = requests.Session()
     s.headers.update({"User-Agent": SEC_UA, "Accept-Encoding": "gzip, deflate"})
     hiz = Hiz(6)
-    r = getir(s, "https://www.sec.gov/files/company_tickers.json", hiz)
+    r = None
+    for ua in [SEC_UA, "borsa-rapor frknbhcl@users.noreply.github.com",
+               "borsa-rapor research noreply@github.com", "Mozilla/5.0 (compatible; borsa-rapor; +https://github.com/frknbhcl/borsa-rapor)"]:
+        s.headers["User-Agent"] = ua
+        try:
+            rr = s.get("https://www.sec.gov/files/company_tickers.json", timeout=60)
+            yaz(f"  UA denemesi [{ua}] -> {rr.status_code} {rr.text[:150]!r}")
+            if rr.status_code == 200:
+                r = rr
+                break
+        except requests.RequestException as e:
+            yaz(f"  UA denemesi [{ua}] -> {e!r}")
+        time.sleep(2)
     if r is None:
         yaz("  HATA: company_tickers.json alınamadı")
         return
