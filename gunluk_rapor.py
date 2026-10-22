@@ -188,6 +188,53 @@ def nasdaq_listesi() -> pd.DataFrame:
     return pd.concat(parcalar, ignore_index=True)
 
 
+# Adi hisse olmayan menkul kıymetler (Yahoo tarayıcısı bunları da "EQUITY" diye döndürüyor): kapalı
+# uçlu fonlar, imtiyazlı hisseler, tahviller, birimler. Çok düşük oynaklıklı oldukları için risk
+# modellerinde listenin başına çıkıyorlar.
+ADI_HISSE_DEGIL = re.compile(r"Preferred|\bNotes?\b|Debenture|Corporate Units|Warrant|\bRights?\b|\bFund\b|"
+                             r"Term Trust|Municipal|Trust Units|Capital Units|\bETF\b|\bETN\b", re.I)
+
+
+def abd_adi_hisse_suz(liste: pd.DataFrame) -> pd.DataFrame:
+    """Nasdaq sembol dizinindeki tam adlara bakarak fon, imtiyazlı hisse, tahvil ve birimleri çıkarır."""
+    yol = VERI / "nasdaq_adlar.csv"
+    adlar = None
+    if yol.exists() and datetime.now() - datetime.fromtimestamp(yol.stat().st_mtime) < timedelta(days=7):
+        adlar = pd.read_csv(yol, dtype=str)
+    else:
+        try:
+            import requests
+            parcalar = []
+            for url, kolon in {"https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt": "Symbol",
+                               "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt": "ACT Symbol"}.items():
+                df = pd.read_csv(io.StringIO(requests.get(url, timeout=30).text), sep="|", dtype=str)
+                df = df[df[kolon].notna() & ~df[kolon].str.startswith("File Creation")]
+                parcalar.append(pd.DataFrame({"sembol": df[kolon].str.replace(".", "-", regex=False),
+                                              "tam_ad": df["Security Name"].fillna(""), "etf": df["ETF"].fillna("N")}))
+            adlar = pd.concat(parcalar, ignore_index=True).drop_duplicates("sembol")
+            VERI.mkdir(parents=True, exist_ok=True)
+            adlar.to_csv(yol, index=False)
+        except Exception as hata:  # noqa: BLE001
+            yaz(f"  Uyarı: Nasdaq sembol dizini alınamadı, fon/imtiyazlı filtresi atlandı ({hata})")
+            if yol.exists():
+                adlar = pd.read_csv(yol, dtype=str)
+    if adlar is None or adlar.empty:
+        return liste
+    a = adlar.set_index("sembol")
+    tam_ad = liste["sembol"].map(a["tam_ad"])
+    etf = liste["sembol"].map(a["etf"]) == "Y"
+    birim = tam_ad.fillna("").str.contains(r"\bUnits?\b", regex=True) & ~tam_ad.fillna("").str.contains(
+        r"Common Units|Partnership Units|Limited Partnership", case=False, regex=True)
+    depo = tam_ad.fillna("").str.contains("Depositary Shares") & ~tam_ad.fillna("").str.contains(r"American\s+Depositary", regex=True)
+    disla = etf | tam_ad.fillna("").str.contains(ADI_HISSE_DEGIL) | birim | depo
+    # Dizinde bulunmayanlarda Yahoo adına bak (ör. NYSE Arca'daki Sprott Physical ... Trust)
+    yok = tam_ad.isna()
+    disla |= yok & liste["ad"].fillna("").str.contains(r"\b(?:Trust|Fund)\b", case=False, regex=True)
+    if disla.any():
+        yaz(f"  Adi hisse olmayan {int(disla.sum())} menkul kıymet çıkarıldı (fon, imtiyazlı, tahvil, birim)")
+    return liste[~disla].reset_index(drop=True)
+
+
 def hisse_listesi(kod: str, ayar: dict, tam: bool) -> pd.DataFrame:
     yol = VERI / f"hisseler_{kod}.csv"
     if yol.exists() and not tam:
@@ -1088,6 +1135,8 @@ def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
     basla = time.time()
     yaz(f"\n=== {ayar['ad']} ===")
     liste = hisse_listesi(kod, ayar, tam)
+    if kod == "abd":
+        liste = abd_adi_hisse_suz(liste)
     yaz(f"  {len(liste)} hisse")
     veri = fiyatlari_guncelle(kod, liste["sembol"].tolist(), tam)
     endeksler = endeksleri_indir(ayar)

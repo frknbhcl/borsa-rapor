@@ -288,6 +288,8 @@ def calistir(kod: str, tam: bool) -> Path:
     basla = time.time()
     yaz(f"\n=== Geriye dönük test: {ayar['ad']} ===")
     liste = g.hisse_listesi(kod, ayar, False)
+    if kod == "abd":
+        liste = g.abd_adi_hisse_suz(liste)
     veri = g.fiyatlari_guncelle(kod, liste["sembol"].tolist(), tam, gun=GECMIS_GUN,
                                 dosya=f"gecmis_{kod}.pkl", alanlar=["Close", "High", "Volume"])
     endeks = g.endeksleri_indir(ayar, gun=GECMIS_GUN).get(ayar["endeks"][0])
