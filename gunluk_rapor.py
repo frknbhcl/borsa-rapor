@@ -397,12 +397,15 @@ def toplu_indir(semboller: list[str], etiket: str, **kw) -> tuple[dict, list[str
     return sonuc, eksik
 
 
-def _baslangic() -> str:
-    return (datetime.now() - timedelta(days=GECMIS_GUN)).strftime("%Y-%m-%d")
+def _baslangic(gun: int = GECMIS_GUN) -> str:
+    return (datetime.now() - timedelta(days=gun)).strftime("%Y-%m-%d")
 
 
-def fiyatlari_guncelle(kod: str, semboller: list[str], tam: bool) -> dict[str, pd.DataFrame]:
-    yol = VERI / f"fiyat_{kod}.pkl"
+def fiyatlari_guncelle(kod: str, semboller: list[str], tam: bool, gun: int = GECMIS_GUN,
+                       dosya: str | None = None, alanlar: list[str] | None = None) -> dict[str, pd.DataFrame]:
+    """Fiyat geçmişini önbellekle günceller. Geriye dönük test daha uzun geçmiş ve ayrı dosya kullanır."""
+    yol = VERI / (dosya or f"fiyat_{kod}.pkl")
+    alan_listesi = alanlar or ALANLAR
     eski = None
     if yol.exists() and not tam:
         try:
@@ -410,11 +413,12 @@ def fiyatlari_guncelle(kod: str, semboller: list[str], tam: bool) -> dict[str, p
         except Exception:  # noqa: BLE001
             eski = None
     if eski is not None and (eski.get("_surum") != ONBELLEK_SURUM
+                             or any(a not in eski for a in alan_listesi)
                              or (datetime.now() - eski["Close"].index.max()).days > 25):
         eski = None  # çok eski ya da eski biçimli önbellek; baştan indir
 
     if eski is None:
-        veri, eksik = toplu_indir(semboller, "Tam geçmiş", start=_baslangic())
+        veri, eksik = toplu_indir(semboller, "Tam geçmiş", start=_baslangic(gun))
         if "Close" not in veri:
             sys.exit("Hiç fiyat verisi indirilemedi. İnternet bağlantını kontrol et.")
     else:
@@ -438,10 +442,10 @@ def fiyatlari_guncelle(kod: str, semboller: list[str], tam: bool) -> dict[str, p
         tam_veri = {}
         if tam_liste:
             yaz(f"  {len(yeniler)} yeni hisse, {len(yeniden)} düzeltilmiş hisse için tam geçmiş indiriliyor.")
-            tam_veri, _ = toplu_indir(tam_liste, "Tam geçmiş", start=_baslangic())
+            tam_veri, _ = toplu_indir(tam_liste, "Tam geçmiş", start=_baslangic(gun))
 
         veri = {}
-        for a in ALANLAR:
+        for a in alan_listesi:
             df = eski[a].drop(columns=yeniden, errors="ignore")
             if a in kisa:
                 df = kisa[a].drop(columns=yeniden, errors="ignore").combine_first(df)
@@ -449,19 +453,21 @@ def fiyatlari_guncelle(kod: str, semboller: list[str], tam: bool) -> dict[str, p
                 df = tam_veri[a].combine_first(df)
             veri[a] = df
 
-    sinir = pd.Timestamp(datetime.now() - timedelta(days=GECMIS_GUN + 10)).normalize()
-    for a in ALANLAR:
+    sinir = pd.Timestamp(datetime.now() - timedelta(days=gun + 10)).normalize()
+    secili = set(semboller)
+    veri = {a: veri[a] for a in alan_listesi if a in veri}
+    for a in list(veri):
         df = veri[a]
-        df = df.loc[df.index >= sinir, [s for s in df.columns if s in set(semboller)]]
+        df = df.loc[df.index >= sinir, [s for s in df.columns if s in secili]]
         veri[a] = df.sort_index().astype("float32")
     VERI.mkdir(parents=True, exist_ok=True)
     pd.to_pickle({**veri, "_surum": ONBELLEK_SURUM}, yol)
     return veri
 
 
-def endeksleri_indir(ayar: dict) -> dict[str, pd.Series]:
+def endeksleri_indir(ayar: dict, gun: int = GECMIS_GUN) -> dict[str, pd.Series]:
     adlar = {ayar["endeks"][0]: ayar["endeks"][1], **ayar["ekstra"]}
-    veri = _indir(list(adlar.values()), start=_baslangic())
+    veri = _indir(list(adlar.values()), start=_baslangic(gun))
     sonuc = {}
     if "Close" in veri:
         for ad, sembol in adlar.items():
@@ -533,7 +539,7 @@ MODELLER += [
      "aciklama": "Piyasa değeri özsermayesine göre düşük (düşük PD/DD) hisseler uzun vadede daha iyi getiri sağlıyor. BIST'te TMS 29 sonrası özsermaye rakamları eski dönemlerle karşılaştırılamaz."},
     {"id": "karlilik", "etiket": "özsermaye kârlılığı (ROE)", "grup": "uzun", "ad": "Kârlılık (ROE)", "yon": 1, "bicim": "yuzde",
      "kaynak": "Hou, Xue & Zhang (2015); Fama & French (2015)",
-     "aciklama": "Özsermayesine göre daha kârlı şirketler daha yüksek getiri sağlıyor; modern faktör modellerinin (q-faktör, beş faktör) temel unsuru. Hesap: son 12 ay hisse başı kâr ÷ hisse başı defter değeri."},
+     "aciklama": "Özsermayesine göre daha kârlı şirketler daha yüksek getiri sağlıyor; modern faktör modellerinin (q-faktör, beş faktör) temel unsuru. Hesap: son 12 ay hisse başı kâr ÷ hisse başı defter değeri. Dikkat: hisse geri alımı yapan şirketlerde özsermaye küçüldüğü için ROE abartılı çıkar (ör. Apple ~%120); değer modeliyle birlikte kullanılması önerilir. BIST'te Yahoo verisi ve TMS 29 nedeniyle güvenilir değil. Geçmiş temel veri olmadığı için geriye dönük test edilemiyor."},
 ]
 GRUPLAR = {"kisa": "Kısa vade · 1 hafta–1 ay", "orta": "Orta vade · 3–12 ay", "uzun": "Uzun vade · 1 yıl+"}
 
@@ -630,6 +636,10 @@ def model_degerleri(c, h, v, getiri, endeks, temel: pd.DataFrame | None = None) 
         defter = pd.to_numeric(t["defter"], errors="coerce")
         ayni_para = (t["fin_para"].isna() | t["para"].isna() | (t["fin_para"] == t["para"]))
         fiyat = son.where(son > 0)
+        # Bariz veri hataları: PD/DD < 0,05 (ör. BRK-B'de A sınıfı hisse başı defter değeri) ya da
+        # |ROE| > %200 gerçekçi değil; bu hisselerde temel veriler kullanılmaz.
+        makul = ayni_para & ~((defter / fiyat) > 20) & ~((eps / defter).abs() > 2)
+        ayni_para = makul
         ham["deger_fk"] = (eps / fiyat).where(ayni_para)
         ham["deger_pddd"] = (defter / fiyat).where(ayni_para & (defter > 0))
         # Kâr ve defter değeri farklı para birimlerinde raporlanabiliyor (ör. THYAO: fiyat TL,

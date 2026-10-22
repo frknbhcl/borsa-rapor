@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{AD}} · Geriye dönük test</title>
+<style>
+:root{--bg:#f6f7f9;--kart:#fff;--yazi:#1c2128;--soluk:#5b6470;--cizgi:#e3e6ea;--vurgu:#0b6bcb;--vurgu-bg:#e7f0fb;
+--pos:#16803c;--neg:#c62828;--uyari:#8a5a00;--uyari-bg:#fff6e0;--izgara:#eceef1;
+--s1:#2a78d6;--s2:#eb6834;--s0:#8b9099}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1216;--kart:#171b21;--yazi:#e6e9ee;--soluk:#9aa4b1;
+--cizgi:#2a3039;--vurgu:#5aa9ff;--vurgu-bg:#16273d;--pos:#3fbf6a;--neg:#ff6b6b;--uyari:#f0c060;--uyari-bg:#2b2412;--izgara:#232931;
+--s1:#3987e5;--s2:#d95926;--s0:#7d8592}}
+:root[data-theme="dark"]{--bg:#0f1216;--kart:#171b21;--yazi:#e6e9ee;--soluk:#9aa4b1;--cizgi:#2a3039;--vurgu:#5aa9ff;--vurgu-bg:#16273d;
+--pos:#3fbf6a;--neg:#ff6b6b;--uyari:#f0c060;--uyari-bg:#2b2412;--izgara:#232931;--s1:#3987e5;--s2:#d95926;--s0:#7d8592}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--yazi);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 64px}a{color:var(--vurgu);text-decoration:none}
+h1{font-size:22px;margin:4px 0 2px}h2{font-size:16px;margin:0 0 8px}.alt{color:var(--soluk);font-size:13px}
+.ust{display:flex;justify-content:space-between;gap:8px;font-size:14px;flex-wrap:wrap}
+.kutu{background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:14px;margin-top:14px}
+.uyari{background:var(--uyari-bg);color:var(--uyari);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:14px}
+.uyari ul{margin:6px 0 0;padding-left:18px}
+.grup{margin-top:10px}.grup:first-child{margin-top:0}
+.grup-bas{display:flex;justify-content:space-between;font-size:13px;color:var(--soluk);margin-bottom:6px}
+.grup-bas button,.lnk{background:none;border:0;color:var(--vurgu);font:inherit;padding:2px 0;cursor:pointer}
+.cipler{display:flex;flex-wrap:wrap;gap:6px}
+.cip{border:1px solid var(--cizgi);background:var(--bg);color:var(--yazi);border-radius:999px;padding:6px 11px;font:inherit;font-size:13px;cursor:pointer}
+.cip[aria-pressed="true"]{background:var(--vurgu-bg);border-color:var(--vurgu);color:var(--vurgu);font-weight:600}
+.ayar{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:12px;font-size:13px;color:var(--soluk);align-items:center}
+.ayar select{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--cizgi);background:var(--kart);color:var(--yazi)}
+.secim-alt{display:flex;justify-content:space-between;margin-top:10px;font-size:13px;color:var(--soluk)}
+.ozet{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:12px}
+.tile .et{display:block;color:var(--soluk);font-size:12px}.tile b{display:block;font-size:22px;font-variant-numeric:tabular-nums;margin:2px 0}
+.tile .dip{display:block;color:var(--soluk);font-size:12px}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+.lejant{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--soluk);margin-bottom:6px}
+.lejant i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.grafik{position:relative}svg{display:block;width:100%;height:auto;overflow:visible}
+.ipucu{position:absolute;pointer-events:none;background:var(--kart);border:1px solid var(--cizgi);border-radius:8px;padding:8px 10px;
+font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.12);min-width:150px;display:none}
+.ipucu div{display:flex;justify-content:space-between;gap:12px}.ipucu b{font-variant-numeric:tabular-nums}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:13px}
+th,td{padding:7px 6px;border-bottom:1px solid var(--cizgi);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}th{font-size:12px;color:var(--soluk);font-weight:600;cursor:pointer}
+tbody tr{cursor:pointer}tbody tr:hover{background:var(--bg)}
+.kap{overflow-x:auto}
+.iki{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:520px){.iki{grid-template-columns:1fr}}
+details summary{cursor:pointer;color:var(--vurgu);font-size:14px}
+.not{font-size:13px;color:var(--soluk);line-height:1.55}
+footer{color:var(--soluk);font-size:12px;margin-top:24px;line-height:1.5}
+</style></head>
+<body><main>
+<div class="ust"><a href="index.html">← Tüm raporlar</a><a href="skor_{{KOD}}.html">Bugünkü skorlar →</a></div>
+<h1>{{AD}} · Geriye dönük test</h1>
+<div class="alt">Dönem {{DONEM}} · {{AY_SAYISI}} ay · her ay en likit {{EVREN}} hisse · oluşturma {{OLUSTURMA}}</div>
+
+<div class="uyari"><b>Okumadan önce:</b>
+<ul>
+<li><b>Hayatta kalma yanlılığı:</b> Yalnızca bugün işlem gören hisseler test edildi; geçmişte borsadan çıkanlar yok. Sonuçlar olduğundan iyi görünebilir, özellikle zayıf hisseleri ödüllendiren modellerde.</li>
+<li>Temel veri modelleri (F/K, PD/DD, ROE) test edilemiyor; geçmişe ait temel veri yok.</li>
+<li>Çok sayıda kombinasyon deneyip en iyisini seçmek, geçmişe uyan ama geleceğe taşınmayan sonuç verir. Kombinasyonun dönemin iki yarısında da tutarlı olup olmadığına bak.</li>
+</ul></div>
+
+<section class="kutu">
+  <div id="modeller"></div>
+  <div class="secim-alt"><span id="secimSay"></span><span><button class="lnk" id="hepsi">Hepsi</button> · <button class="lnk" id="temizle">Temizle</button></span></div>
+  <div class="ayar">
+    <label>Tutma süresi <select id="ufuk"><option value="1">1 ay</option><option value="3">3 ay</option><option value="6">6 ay</option><option value="12">12 ay</option></select></label>
+    <label>İşlem maliyeti <select id="maliyet"><option value="0">yok</option><option value="10">%0,10</option><option value="20" selected>%0,20</option><option value="50">%0,50</option></select></label>
+  </div>
+</section>
+
+<section class="kutu" id="sonuc">
+  <h2>Seçili modellerin ortalama puanına göre</h2>
+  <p class="not" id="aciklama"></p>
+  <div class="ozet" id="ozet"></div>
+  <div style="margin-top:16px">
+    <div class="lejant"><span><i style="background:var(--s1)"></i>En iyi %20</span><span><i style="background:var(--s0)"></i>Tüm evren</span><span><i style="background:var(--s2)"></i>En kötü %20</span></div>
+    <div class="grafik" id="grafik"></div>
+    <div class="alt" style="margin-top:4px">100 ile başlayan birikimli getiri (logaritmik ölçek). Grafiğin üstünde gezinerek dönem değerlerini gör.</div>
+  </div>
+  <h2 style="margin-top:18px">Dönemin iki yarısı</h2>
+  <div class="iki" id="yarilar"></div>
+  <details style="margin-top:12px"><summary>Dönem dönem tablo</summary><div class="kap" id="donemTablo"></div></details>
+</section>
+
+<section class="kutu">
+  <h2>Modeller tek tek</h2>
+  <p class="not">Her model ayrı test edildi. <b>Bilgi katsayısı (IC):</b> puan sırası ile sonraki getiri sırası arasındaki korelasyon; hisse seçiminde 0,02–0,05 iyi, 0,05 üstü çok güçlü sayılır. <b>t</b> 2'nin üstündeyse sonucun şans eseri olma ihtimali düşüktür. <b>Yıllık fark:</b> en iyi %20 ile en kötü %20 arasındaki yıllık getiri farkı (1 aylık tutma, maliyetsiz). Satıra dokununca o model tek başına seçilir.</p>
+  <div class="kap" id="modelTablo"></div>
+</section>
+
+<footer>Getiriler eşit ağırlıklıdır; temettü dahil düzeltilmiş fiyatlarla hesaplanır, vergi düşülmez. BIST getirileri nominal TL'dir; enflasyonu dışarıda bırakmak için "evrene göre fark" satırlarına bak. Geçmiş performans gelecek için garanti değildir. Bu sayfa yatırım tavsiyesi değildir; veri kaynağı Yahoo Finance.</footer>
+</main>
+<script type="application/json" id="veri">{{VERI}}</script>
+<script>
+const D=JSON.parse(document.getElementById('veri').textContent);
+const M=D.modeller, ANAHTAR='gt_secim_'+D.kod, idx=Object.fromEntries(M.map((m,i)=>[m.id,i]));
+const tr=(x,b=1)=>x==null||isNaN(x)?'–':x.toLocaleString('tr-TR',{minimumFractionDigits:b,maximumFractionDigits:b});
+const yuz=(x,b=1,isaret=true)=>x==null||isNaN(x)?'–':(isaret&&x>0?'+':x<0?'−':'')+'%'+tr(Math.abs(x*100),b);
+const renk=x=>x==null||isNaN(x)?'':x>0?'pos':x<0?'neg':'';
+let secili=new Set();
+function yukle(){const h=new URLSearchParams(location.hash.slice(1)).get('m');let l=null;try{l=localStorage.getItem(ANAHTAR)}catch(e){}
+  const k=(h??l??M.map(m=>m.id).join(',')).split(',').filter(x=>x in idx);secili=new Set(k.length?k:M.map(m=>m.id));}
+function kaydet(){const v=[...secili].join(',');try{localStorage.setItem(ANAHTAR,v)}catch(e){};history.replaceState(null,'','#m='+v);}
+function cipler(){const kap=document.getElementById('modeller');kap.innerHTML='';
+  for(const[g,ad]of Object.entries(D.gruplar)){const ms=M.filter(m=>m.grup===g);if(!ms.length)continue;
+    const sadece=ms.length===secili.size&&ms.every(m=>secili.has(m.id));
+    const d=document.createElement('div');d.className='grup';
+    d.innerHTML=`<div class="grup-bas"><span>${ad}</span><button data-g="${g}">${sadece?'Hepsini seç':'Sadece bunlar'}</button></div><div class="cipler"></div>`;
+    for(const m of ms){const b=document.createElement('button');b.className='cip';b.textContent=m.ad;b.dataset.id=m.id;b.title=m.kaynak;
+      b.setAttribute('aria-pressed',secili.has(m.id));d.querySelector('.cipler').appendChild(b);}
+    kap.appendChild(d);}
+  document.getElementById('secimSay').textContent=`${secili.size}/${M.length} model seçili`;}
+document.getElementById('modeller').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.id){secili.has(b.dataset.id)?secili.delete(b.dataset.id):secili.add(b.dataset.id);}
+  else if(b.dataset.g){const ms=M.filter(m=>m.grup===b.dataset.g).map(m=>m.id);
+    secili=(ms.length===secili.size&&ms.every(i=>secili.has(i)))?new Set(M.map(m=>m.id)):new Set(ms);}
+  kaydet();cipler();hesapla();});
+document.getElementById('hepsi').onclick=()=>{secili=new Set(M.map(m=>m.id));kaydet();cipler();hesapla();};
+document.getElementById('temizle').onclick=()=>{secili=new Set();kaydet();cipler();hesapla();};
+['ufuk','maliyet'].forEach(i=>document.getElementById(i).addEventListener('input',hesapla));
+
+function sirala(a){const o=a.map((v,i)=>[v,i]).sort((x,y)=>x[0]-y[0]);const r=new Array(a.length);let i=0;
+  while(i<o.length){let j=i;while(j+1<o.length&&o[j+1][0]===o[i][0])j++;const rr=(i+j)/2;for(let k=i;k<=j;k++)r[o[k][1]]=rr;i=j+1;}return r;}
+function korel(a,b){const n=a.length;if(n<20)return null;const ma=a.reduce((x,y)=>x+y)/n,mb=b.reduce((x,y)=>x+y)/n;
+  let s=0,sa=0,sb=0;for(let i=0;i<n;i++){s+=(a[i]-ma)*(b[i]-mb);sa+=(a[i]-ma)**2;sb+=(b[i]-mb)**2;}return sa&&sb?s/Math.sqrt(sa*sb):null;}
+const ort=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+const ss=a=>{if(a.length<2)return null;const m=ort(a);return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/(a.length-1));};
+
+function donemler(){
+  const k=+document.getElementById('ufuk').value, ki=D.ufuklar.indexOf(k), bps=+document.getElementById('maliyet').value/10000;
+  const sec=[...secili].map(i=>idx[i]), gerek=Math.ceil(sec.length/2);
+  const out=[];let oncekiUst=null,oncekiAlt=null;
+  for(let i=0;i<D.aylar.length;i+=k){
+    const ay=D.aylar[i];const pu=[],re=[],ss_=[];
+    for(let j=0;j<ay.n;j++){const r=ay.r[ki][j];if(r==null)continue;let t=0,c=0;
+      for(const m of sec){const p=ay.p[m][j];if(p>=0){t+=p;c++;}}
+      if(c<gerek||!c)continue;pu.push(t/c);re.push(r/10000);ss_.push(ay.s[j]);}
+    if(pu.length<20)continue;
+    const n=pu.length,q=Math.max(1,Math.round(n*0.2));
+    const sira_=pu.map((v,i)=>i).sort((a,b)=>pu[a]-pu[b]);
+    const alt=sira_.slice(0,q),ust=sira_.slice(n-q);
+    const ustSet=new Set(ust.map(i=>ss_[i])),altSet=new Set(alt.map(i=>ss_[i]));
+    const devirUst=oncekiUst?1-[...ustSet].filter(s=>oncekiUst.has(s)).length/ustSet.size:1;
+    const devirAlt=oncekiAlt?1-[...altSet].filter(s=>oncekiAlt.has(s)).length/altSet.size:1;
+    oncekiUst=ustSet;oncekiAlt=altSet;
+    const rUst=ort(ust.map(i=>re[i]))-devirUst*2*bps, rAlt=ort(alt.map(i=>re[i]))-devirAlt*2*bps, rEv=ort(re);
+    out.push({t:ay.t,ust:rUst,alt:rAlt,ev:rEv,ic:korel(sirala(pu),sirala(re)),devir:devirUst,n});
+  }
+  return {k,out};
+}
+function ozetle(out,k){
+  if(!out.length)return null;
+  const yil=12/k, birik=a=>a.reduce((x,y)=>x*(1+y),1), n=out.length;
+  const yUst=birik(out.map(o=>o.ust))**(yil/n)-1, yAlt=birik(out.map(o=>o.alt))**(yil/n)-1, yEv=birik(out.map(o=>o.ev))**(yil/n)-1;
+  const fazla=out.map(o=>o.ust-o.ev), sh=ss(fazla)?ort(fazla)/ss(fazla)*Math.sqrt(yil):null;
+  const ics=out.map(o=>o.ic).filter(x=>x!=null), icM=ort(ics), icT=ss(ics)?icM/ss(ics)*Math.sqrt(ics.length):null;
+  let tepe=1,s=1,mdd=0;for(const o of out){s*=1+o.ust;tepe=Math.max(tepe,s);mdd=Math.min(mdd,s/tepe-1);}
+  return {yUst,yAlt,yEv,fazla:(1+yUst)/(1+yEv)-1,sh,isabet:fazla.filter(x=>x>0).length/n,icM,icT,mdd,devir:ort(out.slice(1).map(o=>o.devir))*yil,n};
+}
+function tile(et,deger,dip,cls=''){return `<div class="tile"><span class="et">${et}</span><b class="${cls}">${deger}</b><span class="dip">${dip}</span></div>`;}
+function hesapla(){
+  const {k,out}=donemler();const o=ozetle(out,k);const oz=document.getElementById('ozet');
+  document.getElementById('aciklama').textContent=secili.size?
+    `Her ${k===1?'ay':k+' ayda bir'} hisseler seçili ${secili.size} modelin ortalama puanına göre sıralandı; en iyi %20 ve en kötü %20 eşit ağırlıkla tutuldu.`:'';
+  if(!secili.size||!o){oz.innerHTML='<div class="not">En az bir model seç.</div>';document.getElementById('grafik').innerHTML='';
+    document.getElementById('yarilar').innerHTML='';document.getElementById('donemTablo').innerHTML='';return;}
+  oz.innerHTML=tile('En iyi %20 · yıllık',yuz(o.yUst),`evren ${yuz(o.yEv)}`)+
+    tile('Evrene göre fark · yıllık',yuz(o.fazla),`en kötü %20: ${yuz(o.yAlt)}`,renk(o.fazla))+
+    tile('Bilgi katsayısı',tr(o.icM,3),`t = ${tr(o.icT,1)} · ${o.n} dönem${o.icT!=null&&Math.abs(o.icT)<2?' · anlamlı değil':''}`,o.icT!=null&&Math.abs(o.icT)>=2?renk(o.icM):'')+
+    tile('İsabet',yuz(o.isabet,0,false),'evreni geçtiği dönem oranı')+
+    tile('Bilgi oranı',tr(o.sh,2),'fazla getiri ÷ oynaklığı (yıllık)')+
+    tile('En büyük düşüş',yuz(o.mdd,0),`en iyi %20 · devir yılda ${tr(o.devir*100,0)}%`,'neg');
+  grafik(out);
+  const y=Math.floor(out.length/2), a=ozetle(out.slice(0,y),k), b=ozetle(out.slice(y),k);
+  document.getElementById('yarilar').innerHTML=[['İlk yarı',out.slice(0,y),a],['İkinci yarı',out.slice(y),b]].map(([ad,dd,s])=>s?
+    tile(`${ad} · ${dd[0].t.slice(0,7)} – ${dd[dd.length-1].t.slice(0,7)}`,yuz(s.fazla),`evrene göre yıllık fark · IC ${tr(s.icM,3)}`,renk(s.fazla)):'').join('');
+  document.getElementById('donemTablo').innerHTML='<table><thead><tr><th>Dönem başı</th><th>En iyi %20</th><th>Evren</th><th>En kötü %20</th><th>IC</th><th>Hisse</th></tr></thead><tbody>'+
+    out.map(x=>`<tr><td>${x.t}</td><td class="${renk(x.ust-x.ev)}">${yuz(x.ust)}</td><td>${yuz(x.ev)}</td><td>${yuz(x.alt)}</td><td>${tr(x.ic,3)}</td><td>${x.n}</td></tr>`).join('')+'</tbody></table>';
+}
+function grafik(out){
+  const kap=document.getElementById('grafik');const W=Math.max(320,kap.clientWidth||600),H=260,p={l:44,r:12,t:10,b:26};
+  const seriler=[['ust','En iyi %20','var(--s1)'],['ev','Tüm evren','var(--s0)'],['alt','En kötü %20','var(--s2)']];
+  const noktalar={};for(const[k_]of seriler){let s=100;noktalar[k_]=[100,...out.map(o=>s*=1+o[k_])];}
+  const tarih=[out[0].t,...out.map((o,i)=>out[i+1]?out[i+1].t:'son')];
+  const tum=Object.values(noktalar).flat(),lo=Math.log(Math.min(...tum)*0.95),hi=Math.log(Math.max(...tum)*1.05);
+  const x=i=>p.l+(W-p.l-p.r)*i/(out.length),y=v=>p.t+(H-p.t-p.b)*(1-(Math.log(v)-lo)/(hi-lo));
+  const adim=[1,2,5];let tick=[];for(let e=-1;e<6;e++)for(const a of adim){const v=a*10**e;if(Math.log(v)>=lo&&Math.log(v)<=hi)tick.push(v);}
+  if(tick.length>6)tick=tick.filter((_,i)=>i%Math.ceil(tick.length/6)===0);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Birikimli getiri grafiği">`;
+  for(const v of tick)s+=`<line x1="${p.l}" x2="${W-p.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--izgara)"/><text x="${p.l-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--soluk)">${tr(v,0)}</text>`;
+  const yillar=[...new Set(out.map(o=>o.t.slice(0,4)))];
+  let sonX=-99;for(const yy of yillar){const i=out.findIndex(o=>o.t.startsWith(yy));if(i<0||x(i)-sonX<36)continue;sonX=x(i);
+    s+=`<text x="${x(i)}" y="${H-6}" font-size="11" fill="var(--soluk)" text-anchor="middle">${yy}</text>`;}
+  for(const[k_,ad,rk]of seriler){const d=noktalar[k_].map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+    s+=`<path d="${d}" fill="none" stroke="${rk}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;}
+  s+=`<line id="kil" y1="${p.t}" y2="${H-p.b}" stroke="var(--soluk)" stroke-width="1" opacity="0"/><rect x="${p.l}" y="${p.t}" width="${W-p.l-p.r}" height="${H-p.t-p.b}" fill="transparent" id="alan"/></svg><div class="ipucu" id="ipucu"></div>`;
+  kap.innerHTML=s;
+  const alan=kap.querySelector('#alan'),kil=kap.querySelector('#kil'),ip=kap.querySelector('#ipucu'),svg=kap.querySelector('svg');
+  const goster=e=>{const r=svg.getBoundingClientRect(),px=(e.clientX-r.left)*W/r.width;let i=Math.round((px-p.l)/(W-p.l-p.r)*out.length);
+    i=Math.max(0,Math.min(out.length,i));kil.setAttribute('x1',x(i));kil.setAttribute('x2',x(i));kil.setAttribute('opacity',.5);
+    ip.replaceChildren();const bas=document.createElement('div');bas.textContent=i===0?`Başlangıç ${out[0].t}`:`${out[i-1].t} döneminden sonra`;bas.style.color='var(--soluk)';ip.appendChild(bas);
+    for(const[k_,ad,rk]of seriler){const sat=document.createElement('div');const a=document.createElement('span');a.textContent=ad;a.style.borderLeft=`3px solid ${rk}`;a.style.paddingLeft='6px';
+      const b=document.createElement('b');b.textContent=tr(noktalar[k_][i],0);sat.append(a,b);ip.appendChild(sat);}
+    ip.style.display='block';const sol=Math.min(r.width-170,Math.max(0,(x(i)*r.width/W)+10));ip.style.left=sol+'px';ip.style.top='8px';};
+  alan.addEventListener('pointermove',goster);alan.addEventListener('pointerdown',goster);
+  alan.addEventListener('pointerleave',()=>{ip.style.display='none';kil.setAttribute('opacity',0);});
+}
+function modelTablosu(){
+  const kol=[['ad','Model'],['ic1','IC 1a'],['ic3','IC 3a'],['ic6','IC 6a'],['ic12','IC 12a'],['t1','t (1a)'],['fark_yillik','Yıllık fark'],['isabet','İsabet']];
+  let sirali='ic1',yon=-1;
+  const ciz=()=>{const sat=M.map(m=>({id:m.id,ad:m.ad,kaynak:m.kaynak,...D.tablo[m.id]})).sort((a,b)=>sirali==='ad'?yon*a.ad.localeCompare(b.ad,'tr'):yon*((a[sirali]??-9)-(b[sirali]??-9)));
+    document.getElementById('modelTablo').innerHTML='<table><thead><tr>'+kol.map(([k,a])=>`<th data-k="${k}">${a}${k===sirali?(yon<0?' ↓':' ↑'):''}</th>`).join('')+'</tr></thead><tbody>'+
+      sat.map(r=>`<tr data-id="${r.id}"><td>${r.ad}<div class="alt">${r.kaynak.split(';')[0]}</div></td>`+
+        ['ic1','ic3','ic6','ic12'].map(k=>`<td class="${renk(r[k])}">${tr(r[k],3)}</td>`).join('')+
+        `<td>${tr(r.t1,1)}</td><td class="${renk(r.fark_yillik)}">${yuz(r.fark_yillik)}</td><td>${yuz(r.isabet,0,false)}</td></tr>`).join('')+'</tbody></table>';};
+  document.getElementById('modelTablo').addEventListener('click',e=>{const th=e.target.closest('th');if(th){const k=th.dataset.k;yon=sirali===k?-yon:-1;sirali=k;ciz();return;}
+    const tr_=e.target.closest('tr[data-id]');if(tr_){secili=new Set([tr_.dataset.id]);kaydet();cipler();hesapla();document.getElementById('sonuc').scrollIntoView({behavior:'smooth'});}});
+  ciz();
+}
+yukle();cipler();hesapla();modelTablosu();
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(hesapla,150);});
+</script></body></html>

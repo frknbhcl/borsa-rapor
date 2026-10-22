@@ -222,7 +222,7 @@ def skor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, modeller: list, 
 <meta name="robots" content="noindex">
 <title>{ayar['ad']} skorları · {son_tarih:%d.%m.%Y}</title><style>{CSS}</style></head>
 <body><main>
-<div class="ust"><a class="geri-yer" href="../index.html">← Tüm raporlar</a><a href="{rapor_adi}">Günlük rapor →</a></div>
+<div class="ust"><a class="geri-yer" href="../index.html">← Tüm raporlar</a><span><a href="../geriye_test_{kod}.html">Geriye dönük test</a> · <a href="{rapor_adi}">Günlük rapor →</a></span></div>
 <h1>{ayar['ad']} · Skorlar</h1>
 <div class="alt">Veri tarihi {son_tarih:%d.%m.%Y} · oluşturma {olusturma}</div>
 {banner}

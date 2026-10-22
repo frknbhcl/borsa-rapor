@@ -1,0 +1,72 @@
+name: Geriye dönük test
+
+on:
+  schedule:
+    - cron: "0 6 * * 6"    # her cumartesi 09:00 (TR)
+  workflow_dispatch:
+    inputs:
+      piyasa:
+        description: "Hangi piyasa?"
+        type: choice
+        options: [hepsi, bist, abd]
+        default: hepsi
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rapor            # günlük raporla aynı anda siteyi yazmasın
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Uzun geçmiş önbelleğini geri yükle
+        uses: actions/cache/restore@v4
+        with:
+          path: veri
+          key: gecmis-${{ github.run_id }}
+          restore-keys: gecmis-
+
+      - name: Geriye dönük testi çalıştır
+        run: python geriye_test.py ${{ inputs.piyasa || 'hepsi' }}
+
+      - name: Uzun geçmiş önbelleğini kaydet
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: veri
+          key: gecmis-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Yayındaki siteyi al
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: site
+
+      - name: Siteyi güncelle ve yayınla
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p site raporlar
+          rm -rf site/.git
+          cp geriye_test/*.html site/
+          python site_olustur.py raporlar site
+          cd site
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="rapor-botu" -c user.email="rapor-botu@users.noreply.github.com" \
+            commit -q -m "Geriye dönük test: $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git" gh-pages

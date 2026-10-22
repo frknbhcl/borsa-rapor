@@ -115,13 +115,16 @@ def main() -> None:
             skor_link = ""
             if (arsiv / skor_ad).exists():
                 skor = (arsiv / skor_ad).read_text(encoding="utf-8")
-                skor = skor.replace('href="../index.html"', 'href="index.html"').replace(f'href="{ad}"', f'href="{k}.html"')
+                skor = (skor.replace('href="../index.html"', 'href="index.html"').replace(f'href="{ad}"', f'href="{k}.html"')
+                        .replace('href="../geriye_test_', 'href="geriye_test_'))
                 (site / f"skor_{k}.html").write_text(skor, encoding="utf-8")
                 skor_link = f'<a class="ok" href="skor_{k}.html">Skorlar →</a>'
             dogrulama_ad = ad.replace(".html", "_dogrulama.html")
             if (arsiv / dogrulama_ad).exists():
                 shutil.copy2(arsiv / dogrulama_ad, site / f"dogrulama_{k}.html")
                 skor_link += f'<a class="ok ikincil" href="dogrulama_{k}.html">Doğrulama</a>'
+            if (site / f"geriye_test_{k}.html").exists():
+                skor_link += f'<a class="ok ikincil" href="geriye_test_{k}.html">Geriye dönük test</a>'
             kartlar.append(
                 f'<div class="kart"><b>{AD[kod]}</b><span class="alt">{tarih_metni(tarih)}</span>'
                 f'<span class="linkler">{skor_link}<a class="ok ikincil" href="{k}.html">Günlük rapor</a></span></div>')
