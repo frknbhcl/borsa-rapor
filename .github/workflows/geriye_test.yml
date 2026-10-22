@@ -39,8 +39,34 @@ jobs:
           key: gecmis-${{ github.run_id }}
           restore-keys: gecmis-
 
+      - name: Önbellek yoksa kalıcı arşivden al
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p veri
+          for k in bist abd; do
+            if [ ! -f "veri/gecmis_$k.pkl" ]; then
+              if gh release download veri-arsivi --repo "${{ github.repository }}" --pattern "gecmis_$k.pkl.gz" --dir veri --clobber; then
+                gunzip -f "veri/gecmis_$k.pkl.gz" && echo "$k: arşivden alındı"
+              else
+                echo "$k: arşivde yok, Yahoo'dan indirilecek"
+              fi
+            fi
+          done
+
       - name: Geriye dönük testi çalıştır
         run: python geriye_test.py ${{ inputs.piyasa || 'hepsi' }}
+
+      - name: Kalıcı arşive yükle
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          R: ${{ github.repository }}
+        run: |
+          python arsiv.py veri arsiv
+          gh release view veri-arsivi --repo "$R" >/dev/null 2>&1 || gh release create veri-arsivi --repo "$R" \
+            --title "Fiyat geçmişi arşivi" \
+            --notes "BIST ve ABD hisselerinin yaklaşık 6 yıllık günlük fiyat geçmişi. Her cumartesi geriye dönük testle güncellenir. kapanis_*.csv.gz: düzeltilmiş kapanışlar (satır = tarih, sütun = hisse); hacim_*.csv.gz: işlem adedi; gecmis_*.pkl.gz: betiklerin kullandığı önbellek. Kaynak: Yahoo Finance."
+          gh release upload veri-arsivi arsiv/* --repo "$R" --clobber
 
       - name: Uzun geçmiş önbelleğini kaydet
         if: always()

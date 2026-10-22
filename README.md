@@ -28,6 +28,8 @@ Puan, hissenin o modeldeki değerinin aynı borsadaki likit hisseler arasındaki
 - `site_olustur.py`: raporları siteye ekler, 45 günden eski olanları siler, ana sayfayı üretir
 - `.github/workflows/rapor.yml`: zamanlama ve yayınlama
 
-Fiyat önbelleği Actions cache'inde tutulur. İlk çalıştırma 1 yıllık geçmişi indirir, sonrakiler yalnızca son günleri indirir.
+Uzun fiyat geçmişi (≈6 yıl) kalıcı olarak GitHub'da **"veri-arsivi"** sürümünde (Releases) saklanır ve her cumartesi güncellenir: `kapanis_bist.csv.gz`, `kapanis_abd.csv.gz` (düzeltilmiş kapanışlar), `hacim_*.csv.gz` ve betiklerin kullandığı `gecmis_*.pkl.gz`. Önbellek silinse bile geçmiş baştan indirilmez, arşivden alınır (`arsiv.py`).
+
+Günlük fiyat önbelleği Actions cache'inde tutulur. İlk çalıştırma 1 yıllık geçmişi indirir, sonrakiler yalnızca son günleri indirir.
 
 Veri kaynağı Yahoo Finance'tir; veriler hatalı olabilir. Yatırım tavsiyesi değildir.
