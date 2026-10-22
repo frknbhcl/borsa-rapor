@@ -33,6 +33,7 @@ import numpy as np
 import pandas as pd
 
 import gunluk_rapor as g
+from oneri import ONERI, TARAMA_TARIHI
 
 GECMIS_GUN = 6 * 365 + 40          # ~6 yıl: ilk 13 ay modellerin ısınması, kalan ~5 yıl test
 EVREN = {"bist": 300, "abd": 1000}  # her ay ortalama işlem hacmine göre en likit N hisse
@@ -245,6 +246,11 @@ def hafta_json(sonuc: dict) -> dict:
     return {"modeller": HAFTA_MODELLER, "semboller": semboller, "haftalar": out}
 
 
+def oneri_json(kod: str) -> str:
+    o = ONERI.get(kod)
+    return "null" if not o else json.dumps({**o, "tarih": TARAMA_TARIHI}, ensure_ascii=False).replace("</", "<\\/")
+
+
 def sayfa(veri: dict) -> str:
     sablon = (KLASOR / "geriye_test_sablon.html").read_text(encoding="utf-8")
     js_veri = json.dumps(veri, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
@@ -256,6 +262,7 @@ def sayfa(veri: dict) -> str:
             .replace("{{AY_SAYISI}}", str(len(veri["aylar"])))
             .replace("{{EVREN}}", str(veri["evren"]))
             .replace("{{OLUSTURMA}}", olusturma)
+            .replace("{{ONERI}}", oneri_json(veri["kod"]))
             .replace("{{VERI}}", js_veri))
 
 

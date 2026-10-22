@@ -10,6 +10,8 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
+from oneri import ONERI, TARAMA_TARIHI
+
 CSS = """
 :root{--bg:#f6f7f9;--kart:#fff;--yazi:#1c2128;--soluk:#5b6470;--cizgi:#e3e6ea;--vurgu:#0b6bcb;
 --vurgu-bg:#e7f0fb;--pos:#16803c;--neg:#c62828;--orta:#8a6d00;--uyari:#8a5a00;--uyari-bg:#fff6e0;--bar:#d6dbe1}
@@ -77,6 +79,13 @@ color:var(--soluk);white-space:nowrap}
 .katki em.p-yuk b{color:var(--pos)}.katki em.p-dus b{color:var(--neg)}.katki em.p-ort b{color:var(--orta)}
 .katki .ham{font-size:12px;color:var(--soluk)}
 .cip:disabled{opacity:.45;cursor:not-allowed;text-decoration:line-through}
+.oneri{margin-bottom:12px;border:1px solid var(--vurgu);background:var(--vurgu-bg);border-radius:10px;padding:10px 12px;font-size:13px}
+.oneri .bas{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.oneri .bas>span>b{color:var(--vurgu)}.oneri p{margin:6px 0 0;line-height:1.5}
+.oneri .etiket{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid currentColor;margin-left:6px;white-space:nowrap}
+.oneri .etiket.zayif{color:var(--uyari)}.oneri .etiket.guclu{color:var(--pos)}
+.oneri button{border:0;background:var(--vurgu);color:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.oneri details{margin-top:4px}.oneri summary{cursor:pointer;color:var(--vurgu)}.oneri p.alt{color:var(--soluk)}
 """
 
 JS = r"""
@@ -175,6 +184,16 @@ function ciz(){
 }
 document.getElementById('daha').onclick=()=>{adet+=50;ciz();};
 ['ara','likit','sirala'].forEach(i=>document.getElementById(i).addEventListener('input',()=>{adet=50;ciz();}));
+const O=JSON.parse(document.getElementById('oneriVeri').textContent||'null');
+if(O&&O.modeller.every(i=>VAR.has(i))){const k=document.getElementById('oneri');k.hidden=false;
+  const zayif=O.guven==='zayıf', gt=document.querySelector('a[href*="geriye_test_"]');
+  const gtLink=gt?`<a href="${gt.getAttribute('href')}#m=${O.modeller.join(',')}&u=${O.ufuk}">geçmiş performansı gör</a>`:'';
+  k.innerHTML=`<div class="bas"><span><b>Öneri · orta vade (3 ay tut)</b><span class="etiket ${zayif?'zayif':'guclu'}">${zayif?'zayıf sinyal':'sağlam sinyal'}</span></span><button id="oneriUygula">Uygula</button></div>
+    <p><b>${O.baslik}</b>${zayif?' · filtre olarak kullan':''}</p>
+    <details><summary>Neden?</summary><p>${O.ozet} Uygula'ya basınca bu modeller seçilir ve yalnızca likit hisseler gösterilir. ${gtLink}</p>
+    <p class="alt">${O.tarih} tarihli kombinasyon taraması. Yatırım tavsiyesi değildir.</p></details>`;
+  document.getElementById('oneriUygula').onclick=()=>{secili=new Set(O.modeller);document.getElementById('likit').checked=true;
+    adet=50;kaydet();cipler();ciz();};}
 yukle();cipler();ciz();
 """
 
@@ -187,6 +206,11 @@ def _sayi(x, basamak=4):
     except (TypeError, ValueError):
         return None
     return None if math.isnan(f) or math.isinf(f) else round(f, basamak)
+
+
+def oneri_json(kod: str) -> str:
+    o = ONERI.get(kod)
+    return "null" if not o else json.dumps({**o, "tarih": TARAMA_TARIHI}, ensure_ascii=False).replace("</", "<\\/")
 
 
 def skor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, modeller: list, gruplar: dict,
@@ -227,6 +251,7 @@ def skor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, modeller: list, 
 <div class="alt">Veri tarihi {son_tarih:%d.%m.%Y} · oluşturma {olusturma}</div>
 {banner}
 <section class="kutu">
+  <div class="oneri" id="oneri" hidden></div>
   <div id="modeller"></div>
   <div class="secim-alt"><span id="secimSay"></span><span><button id="hepsi">Hepsi</button><button id="temizle">Temizle</button></span></div>
   <details class="bilgi"><summary>Modeller ne anlatıyor?</summary><dl>{bilgi}</dl></details>
@@ -246,4 +271,5 @@ Akademik bulgular ortalamalara dayanır ve yayımlandıktan sonra zayıflayabili
 model kombinasyonunu seçmek de yanıltıcı olabilir. Bu sayfa yatırım tavsiyesi değildir; veri kaynağı Yahoo Finance.</footer>
 </main>
 <script type="application/json" id="veri">{js_veri}</script>
+<script type="application/json" id="oneriVeri">{oneri_json(kod)}</script>
 <script>{JS}</script></body></html>"""

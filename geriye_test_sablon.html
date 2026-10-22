@@ -29,6 +29,12 @@ h1{font-size:22px;margin:4px 0 2px}h2{font-size:16px;margin:0 0 8px}.alt{color:v
 .secim-alt{display:flex;justify-content:space-between;margin-top:10px;font-size:13px;color:var(--soluk)}
 .hazir{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
 .hazir .cip{background:var(--kart)}
+.oneri{margin-bottom:12px;border:1px solid var(--vurgu);background:var(--vurgu-bg);border-radius:10px;padding:10px 12px;font-size:13px}
+.oneri .bas{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.oneri b{color:var(--vurgu)}.oneri p{margin:6px 0 0;color:var(--yazi);line-height:1.5}.oneri p.alt{color:var(--soluk)}
+.oneri .etiket{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid currentColor;margin-left:6px;white-space:nowrap}
+.oneri .etiket.zayif{color:var(--uyari)}.oneri .etiket.guclu{color:var(--pos)}
+.oneri button{border:0;background:var(--vurgu);color:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .ozet{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .tile{background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:12px}
 .tile .et{display:block;color:var(--soluk);font-size:12px}.tile b{display:block;font-size:22px;font-variant-numeric:tabular-nums;margin:2px 0}
@@ -63,6 +69,7 @@ footer{color:var(--soluk);font-size:12px;margin-top:24px;line-height:1.5}
 </ul></div>
 
 <section class="kutu">
+  <div class="oneri" id="oneri" hidden></div>
   <div id="modeller"></div>
   <div class="secim-alt"><span id="secimSay"></span><span><button class="lnk" id="hepsi">Hepsi</button> · <button class="lnk" id="temizle">Temizle</button></span></div>
   <div class="hazir"><span class="alt">Hazır testler:</span>
@@ -99,6 +106,7 @@ footer{color:var(--soluk);font-size:12px;margin-top:24px;line-height:1.5}
 <footer>Getiriler eşit ağırlıklıdır; temettü dahil düzeltilmiş fiyatlarla hesaplanır, vergi düşülmez. BIST getirileri nominal TL'dir; enflasyonu dışarıda bırakmak için "evrene göre fark" satırlarına bak. Geçmiş performans gelecek için garanti değildir. Bu sayfa yatırım tavsiyesi değildir; veri kaynağı Yahoo Finance.</footer>
 </main>
 <script type="application/json" id="veri">{{VERI}}</script>
+<script type="application/json" id="oneriVeri">{{ONERI}}</script>
 <script>
 const D=JSON.parse(document.getElementById('veri').textContent);
 const M=D.modeller, ANAHTAR='gt_secim_'+D.kod, idx=Object.fromEntries(M.map((m,i)=>[m.id,i]));
@@ -130,6 +138,13 @@ const HAZIR={kisa:['kisa','h'],orta:['orta','3'],uzun:['uzun','12']};
 document.querySelector('.hazir').addEventListener('click',e=>{const b=e.target.closest('button[data-hazir]');if(!b)return;
   const[g,u]=HAZIR[b.dataset.hazir];secili=new Set(M.filter(m=>m.grup===g).map(m=>m.id));
   document.getElementById('ufuk').value=u;kaydet();cipler();hesapla();});
+const O=JSON.parse(document.getElementById('oneriVeri').textContent||'null');
+if(O&&O.modeller.every(i=>i in idx)){const k=document.getElementById('oneri');k.hidden=false;
+  const zayif=O.guven==='zayıf';
+  k.innerHTML=`<div class="bas"><span><b>Öneri · orta vade (3 ay)</b><span class="etiket ${zayif?'zayif':'guclu'}">${zayif?'zayıf sinyal':'sağlam sinyal'}</span></span><button id="oneriUygula">Uygula</button></div>
+    <p><b style="color:var(--yazi)">${O.baslik}.</b> ${O.ozet}</p><p class="alt">${O.tarih} tarihli kombinasyon taraması: 155 kombinasyon, seçim dönemin ilk yarısında yapıldı, ikinci yarı örneklem dışı kontrol. Yatırım tavsiyesi değildir.</p>`;
+  document.getElementById('oneriUygula').onclick=()=>{secili=new Set(O.modeller);document.getElementById('ufuk').value=O.ufuk;
+    kaydet();cipler();hesapla();document.getElementById('sonuc').scrollIntoView({behavior:'smooth'});};}
 let HAFTA=null,haftaYukleniyor=false;
 function haftaYukle(){if(HAFTA||haftaYukleniyor)return;haftaYukleniyor=true;
   fetch(`geriye_test_${D.kod}_hafta.json`).then(r=>r.ok?r.json():Promise.reject(r.status))
@@ -263,6 +278,9 @@ function modelTablosu(){
     const tr_=e.target.closest('tr[data-id]');if(tr_){secili=new Set([tr_.dataset.id]);kaydet();cipler();hesapla();document.getElementById('sonuc').scrollIntoView({behavior:'smooth'});}});
   ciz();
 }
-yukle();cipler();hesapla();modelTablosu();
+yukle();
+{const hu=new URLSearchParams(location.hash.slice(1)).get('u'),uf=document.getElementById('ufuk');
+  if(hu&&[...uf.options].some(o=>o.value===hu))uf.value=hu;}
+cipler();hesapla();modelTablosu();
 let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(hesapla,150);});
 </script></body></html>
