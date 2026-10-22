@@ -119,24 +119,14 @@ def sec() -> None:
     s.headers.update({"User-Agent": SEC_UA, "Accept-Encoding": "gzip, deflate"})
     hiz = Hiz(6)
     r = None
-    for ua in [SEC_UA, "borsa-rapor frknbhcl@users.noreply.github.com",
-               "borsa-rapor research noreply@github.com", "Mozilla/5.0 (compatible; borsa-rapor; +https://github.com/frknbhcl/borsa-rapor)"]:
-        s.headers["User-Agent"] = ua
-        try:
-            for u in ("https://data.sec.gov/api/xbrl/frames/us-gaap/Assets/USD/CY2023Q4I.json",
-                      "https://data.sec.gov/submissions/CIK0000320193.json"):
-                r0 = s.get(u, timeout=60)
-                yaz(f"  [{ua}] {u.split('/')[-1]} -> {r0.status_code} {len(r0.content)}B")
-            rr = s.get("https://www.sec.gov/files/company_tickers.json", timeout=60)
-            baslik = re.search(r"<title>(.*?)</title>", rr.text, re.S)
-            govde = re.sub(r"<[^>]+>", " ", rr.text)
-            yaz(f"  UA denemesi [{ua}] -> {rr.status_code} {baslik.group(1) if baslik else ''} | {' '.join(govde.split())[:300]}")
-            if rr.status_code == 200:
-                r = rr
-                break
-        except requests.RequestException as e:
-            yaz(f"  UA denemesi [{ua}] -> {e!r}")
-        time.sleep(2)
+    for deneme in range(4):
+        rr = s.get("https://www.sec.gov/files/company_tickers.json", timeout=60)
+        yaz(f"  deneme {deneme + 1}: {rr.status_code}")
+        if rr.status_code == 200:
+            r = rr
+            break
+        if deneme < 3:
+            time.sleep(660)  # SEC IP engeli 10 dakika sürer
     if r is None:
         yaz("  HATA: company_tickers.json alınamadı")
         return
