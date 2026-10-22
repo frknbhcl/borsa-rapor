@@ -88,7 +88,7 @@ jobs:
         run: |
           mkdir -p site raporlar
           rm -rf site/.git
-          cp geriye_test/*.html site/
+          cp geriye_test/*.html geriye_test/*_hafta.json site/
           python site_olustur.py raporlar site
           cd site
           git init -q -b gh-pages

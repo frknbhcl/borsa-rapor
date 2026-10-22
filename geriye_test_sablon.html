@@ -27,6 +27,8 @@ h1{font-size:22px;margin:4px 0 2px}h2{font-size:16px;margin:0 0 8px}.alt{color:v
 .ayar{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:12px;font-size:13px;color:var(--soluk);align-items:center}
 .ayar select{font:inherit;padding:5px 8px;border-radius:8px;border:1px solid var(--cizgi);background:var(--kart);color:var(--yazi)}
 .secim-alt{display:flex;justify-content:space-between;margin-top:10px;font-size:13px;color:var(--soluk)}
+.hazir{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
+.hazir .cip{background:var(--kart)}
 .ozet{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .tile{background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:12px}
 .tile .et{display:block;color:var(--soluk);font-size:12px}.tile b{display:block;font-size:22px;font-variant-numeric:tabular-nums;margin:2px 0}
@@ -63,8 +65,13 @@ footer{color:var(--soluk);font-size:12px;margin-top:24px;line-height:1.5}
 <section class="kutu">
   <div id="modeller"></div>
   <div class="secim-alt"><span id="secimSay"></span><span><button class="lnk" id="hepsi">Hepsi</button> · <button class="lnk" id="temizle">Temizle</button></span></div>
+  <div class="hazir"><span class="alt">Hazır testler:</span>
+    <button class="cip" data-hazir="kisa">Kısa vade · haftalık</button>
+    <button class="cip" data-hazir="orta">Orta vade · 3 ay</button>
+    <button class="cip" data-hazir="uzun">Uzun vade · 12 ay</button></div>
   <div class="ayar">
-    <label>Tutma süresi <select id="ufuk"><option value="1">1 ay</option><option value="3">3 ay</option><option value="6">6 ay</option><option value="12">12 ay</option></select></label>
+    <label>Tutma süresi <select id="ufuk"><option value="h">1 hafta</option><option value="1" selected>1 ay</option><option value="3">3 ay</option><option value="6">6 ay</option><option value="12">12 ay</option></select></label>
+    <label>Test dönemi <select id="donem"><option value="0">Tamamı</option><option value="3">Son 3 yıl</option><option value="2">Son 2 yıl</option><option value="1">Son 1 yıl</option></select></label>
     <label>İşlem maliyeti <select id="maliyet"><option value="0">yok</option><option value="10">%0,10</option><option value="20" selected>%0,20</option><option value="50">%0,50</option></select></label>
   </div>
 </section>
@@ -85,7 +92,7 @@ footer{color:var(--soluk);font-size:12px;margin-top:24px;line-height:1.5}
 
 <section class="kutu">
   <h2>Modeller tek tek</h2>
-  <p class="not">Her model ayrı test edildi. <b>Bilgi katsayısı (IC):</b> puan sırası ile sonraki getiri sırası arasındaki korelasyon; hisse seçiminde 0,02–0,05 iyi, 0,05 üstü çok güçlü sayılır. <b>t</b> 2'nin üstündeyse sonucun şans eseri olma ihtimali düşüktür. <b>Yıllık fark:</b> en iyi %20 ile en kötü %20 arasındaki yıllık getiri farkı (1 aylık tutma, maliyetsiz). Satıra dokununca o model tek başına seçilir.</p>
+  <p class="not">Her model ayrı test edildi. <b>IC 1h:</b> haftalık yenilenen test (yalnızca kısa vade modelleri); diğer sütunlar aylık test ve 1/3/6/12 ay sonraki getiri. <b>Bilgi katsayısı (IC):</b> puan sırası ile sonraki getiri sırası arasındaki korelasyon; hisse seçiminde 0,02–0,05 iyi, 0,05 üstü çok güçlü sayılır. <b>t</b> 2'nin üstündeyse sonucun şans eseri olma ihtimali düşüktür (3, 6 ve 12 aylık sütunlar her ay başlayan dönemlerden hesaplanır, t örtüşmeye göre düzeltilmiştir). <b>Yıllık fark:</b> en iyi %20 ile en kötü %20 arasındaki yıllık getiri farkı (1 aylık tutma, maliyetsiz). Satıra dokununca o model tek başına seçilir.</p>
   <div class="kap" id="modelTablo"></div>
 </section>
 
@@ -118,7 +125,15 @@ document.getElementById('modeller').addEventListener('click',e=>{const b=e.targe
   kaydet();cipler();hesapla();});
 document.getElementById('hepsi').onclick=()=>{secili=new Set(M.map(m=>m.id));kaydet();cipler();hesapla();};
 document.getElementById('temizle').onclick=()=>{secili=new Set();kaydet();cipler();hesapla();};
-['ufuk','maliyet'].forEach(i=>document.getElementById(i).addEventListener('input',hesapla));
+['ufuk','maliyet','donem'].forEach(i=>document.getElementById(i).addEventListener('input',hesapla));
+const HAZIR={kisa:['kisa','h'],orta:['orta','3'],uzun:['uzun','12']};
+document.querySelector('.hazir').addEventListener('click',e=>{const b=e.target.closest('button[data-hazir]');if(!b)return;
+  const[g,u]=HAZIR[b.dataset.hazir];secili=new Set(M.filter(m=>m.grup===g).map(m=>m.id));
+  document.getElementById('ufuk').value=u;kaydet();cipler();hesapla();});
+let HAFTA=null,haftaYukleniyor=false;
+function haftaYukle(){if(HAFTA||haftaYukleniyor)return;haftaYukleniyor=true;
+  fetch(`geriye_test_${D.kod}_hafta.json`).then(r=>r.ok?r.json():Promise.reject(r.status))
+    .then(j=>{HAFTA=j;hesapla();}).catch(()=>{HAFTA={hata:true};hesapla();});}
 
 function sirala(a){const o=a.map((v,i)=>[v,i]).sort((x,y)=>x[0]-y[0]);const r=new Array(a.length);let i=0;
   while(i<o.length){let j=i;while(j+1<o.length&&o[j+1][0]===o[i][0])j++;const rr=(i+j)/2;for(let k=i;k<=j;k++)r[o[k][1]]=rr;i=j+1;}return r;}
@@ -127,13 +142,27 @@ function korel(a,b){const n=a.length;if(n<20)return null;const ma=a.reduce((x,y)
 const ort=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
 const ss=a=>{if(a.length<2)return null;const m=ort(a);return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/(a.length-1));};
 
+function kesim(son){const y=+document.getElementById('donem').value;if(!y)return '';
+  const d=new Date(son);d.setFullYear(d.getFullYear()-y);return d.toISOString().slice(0,10);}
 function donemler(){
-  const k=+document.getElementById('ufuk').value, ki=D.ufuklar.indexOf(k), bps=+document.getElementById('maliyet').value/10000;
-  const sec=[...secili].map(i=>idx[i]), gerek=Math.ceil(sec.length/2);
+  const u=document.getElementById('ufuk').value, haftalik=u==='h', bps=+document.getElementById('maliyet').value/10000;
+  const k=haftalik?1:+u;
+  let liste,sec,rAl;
+  if(haftalik){
+    if(!HAFTA||HAFTA.hata)return {k,haftalik,out:[],durum:HAFTA&&HAFTA.hata?'hata':'yukleniyor'};
+    const hidx=Object.fromEntries(HAFTA.modeller.map((m,i)=>[m,i]));
+    const uygun=[...secili].filter(i=>i in hidx);
+    if(!uygun.length)return {k,haftalik,out:[],durum:'uygunsuz'};
+    liste=HAFTA.haftalar;sec=uygun.map(i=>hidx[i]);rAl=(ay,j)=>ay.r[j];
+  }else{
+    const ki=D.ufuklar.indexOf(k);liste=D.aylar;sec=[...secili].map(i=>idx[i]);rAl=(ay,j)=>ay.r[ki][j];
+  }
+  const sinir=kesim(liste[liste.length-1].t);if(sinir)liste=liste.filter(a=>a.t>=sinir);
+  const gerek=Math.ceil(sec.length/2);
   const out=[];let oncekiUst=null,oncekiAlt=null;
-  for(let i=0;i<D.aylar.length;i+=k){
-    const ay=D.aylar[i];const pu=[],re=[],ss_=[];
-    for(let j=0;j<ay.n;j++){const r=ay.r[ki][j];if(r==null)continue;let t=0,c=0;
+  for(let i=0;i<liste.length;i+=k){
+    const ay=liste[i];const pu=[],re=[],ss_=[];
+    for(let j=0;j<ay.n;j++){const r=rAl(ay,j);if(r==null)continue;let t=0,c=0;
       for(const m of sec){const p=ay.p[m][j];if(p>=0){t+=p;c++;}}
       if(c<gerek||!c)continue;pu.push(t/c);re.push(r/10000);ss_.push(ay.s[j]);}
     if(pu.length<20)continue;
@@ -147,32 +176,48 @@ function donemler(){
     const rUst=ort(ust.map(i=>re[i]))-devirUst*2*bps, rAlt=ort(alt.map(i=>re[i]))-devirAlt*2*bps, rEv=ort(re);
     out.push({t:ay.t,ust:rUst,alt:rAlt,ev:rEv,ic:korel(sirala(pu),sirala(re)),devir:devirUst,n});
   }
-  return {k,out};
+  // Bilgi katsayısı: her dönem başlayan (örtüşen) portföylerle; t örtüşmeye göre düzeltilir
+  const icler=[];
+  if(k>1){for(const ay of liste){const pu=[],re=[];
+    for(let j=0;j<ay.n;j++){const r=rAl(ay,j);if(r==null)continue;let t=0,c=0;
+      for(const m of sec){const p=ay.p[m][j];if(p>=0){t+=p;c++;}}
+      if(c<gerek||!c)continue;pu.push(t/c);re.push(r);}
+    if(pu.length>=20){const v=korel(sirala(pu),sirala(re));if(v!=null)icler.push(v);}}}
+  return {k,haftalik,out,kullanilan:sec.length,icler};
 }
-function ozetle(out,k){
+function ozetle(out,k,haftalik,icler){
   if(!out.length)return null;
-  const yil=12/k, birik=a=>a.reduce((x,y)=>x*(1+y),1), n=out.length;
+  const yil=haftalik?52:12/k, birik=a=>a.reduce((x,y)=>x*(1+y),1), n=out.length;
   const yUst=birik(out.map(o=>o.ust))**(yil/n)-1, yAlt=birik(out.map(o=>o.alt))**(yil/n)-1, yEv=birik(out.map(o=>o.ev))**(yil/n)-1;
   const fazla=out.map(o=>o.ust-o.ev), sh=ss(fazla)?ort(fazla)/ss(fazla)*Math.sqrt(yil):null;
-  const ics=out.map(o=>o.ic).filter(x=>x!=null), icM=ort(ics), icT=ss(ics)?icM/ss(ics)*Math.sqrt(ics.length):null;
+  const ics=(icler&&icler.length?icler:out.map(o=>o.ic)).filter(x=>x!=null), etkin=icler&&icler.length?ics.length/k:ics.length;
+  const icM=ort(ics), icT=ss(ics)?icM/ss(ics)*Math.sqrt(etkin):null;
   let tepe=1,s=1,mdd=0;for(const o of out){s*=1+o.ust;tepe=Math.max(tepe,s);mdd=Math.min(mdd,s/tepe-1);}
   return {yUst,yAlt,yEv,fazla:(1+yUst)/(1+yEv)-1,sh,isabet:fazla.filter(x=>x>0).length/n,icM,icT,mdd,devir:ort(out.slice(1).map(o=>o.devir))*yil,n};
 }
 function tile(et,deger,dip,cls=''){return `<div class="tile"><span class="et">${et}</span><b class="${cls}">${deger}</b><span class="dip">${dip}</span></div>`;}
 function hesapla(){
-  const {k,out}=donemler();const o=ozetle(out,k);const oz=document.getElementById('ozet');
-  document.getElementById('aciklama').textContent=secili.size?
-    `Her ${k===1?'ay':k+' ayda bir'} hisseler seçili ${secili.size} modelin ortalama puanına göre sıralandı; en iyi %20 ve en kötü %20 eşit ağırlıkla tutuldu.`:'';
-  if(!secili.size||!o){oz.innerHTML='<div class="not">En az bir model seç.</div>';document.getElementById('grafik').innerHTML='';
+  const {k,haftalik,out,durum,kullanilan,icler}=donemler();const o=ozetle(out,k,haftalik,icler);const oz=document.getElementById('ozet');
+  if(haftalik)haftaYukle();
+  const sinir=document.getElementById('donem').value!=='0';
+  document.getElementById('aciklama').textContent=secili.size&&o?
+    `Her ${haftalik?'hafta':k===1?'ay':k+' ayda bir'} hisseler seçili ${kullanilan} modelin ortalama puanına göre sıralandı; en iyi %20 ve en kötü %20 eşit ağırlıkla tutuldu.`+
+    (haftalik&&kullanilan<secili.size?` Haftalık testte yalnızca kısa vade modelleri kullanılır; seçimindeki diğer ${secili.size-kullanilan} model dikkate alınmadı.`:'')+
+    (o.n<24?` Dikkat: yalnızca ${o.n} bağımsız dönem var; getiri rakamları güvenilir olmayabilir.`+(k>1?' Bilgi katsayısı her ay başlayan dönemlerden hesaplandı, o daha güvenilir.':''):''):'';
+  const mesaj=durum==='yukleniyor'?'Haftalık veri yükleniyor…':durum==='hata'?'Haftalık veri yüklenemedi.':
+    durum==='uygunsuz'?'Haftalık test yalnızca kısa vade modelleri (haftalık/aylık dönüş, hacim primi, MAX, çarpıklık) için var. "Kısa vade · haftalık" hazır testini seç.':
+    !secili.size?'En az bir model seç.':'Seçilen test döneminde bu tutma süresi için yeterli veri yok. Uzun tutma süreleri, dönem başından itibaren o kadar sonrasının verisini gerektirir; daha uzun bir test dönemi seç.';
+  if(!secili.size||!o){oz.innerHTML=`<div class="not">${mesaj}</div>`;document.getElementById('grafik').innerHTML='';
     document.getElementById('yarilar').innerHTML='';document.getElementById('donemTablo').innerHTML='';return;}
   oz.innerHTML=tile('En iyi %20 · yıllık',yuz(o.yUst),`evren ${yuz(o.yEv)}`)+
     tile('Evrene göre fark · yıllık',yuz(o.fazla),`en kötü %20: ${yuz(o.yAlt)}`,renk(o.fazla))+
-    tile('Bilgi katsayısı',tr(o.icM,3),`t = ${tr(o.icT,1)} · ${o.n} dönem${o.icT!=null&&Math.abs(o.icT)<2?' · anlamlı değil':''}`,o.icT!=null&&Math.abs(o.icT)>=2?renk(o.icM):'')+
+    tile('Bilgi katsayısı',tr(o.icM,3),`t = ${tr(o.icT,1)} · ${icler&&icler.length?icler.length+' örtüşen':o.n} dönem${o.icT!=null&&Math.abs(o.icT)<2?' · anlamlı değil':''}`,o.icT!=null&&Math.abs(o.icT)>=2?renk(o.icM):'')+
     tile('İsabet',yuz(o.isabet,0,false),'evreni geçtiği dönem oranı')+
     tile('Bilgi oranı',tr(o.sh,2),'fazla getiri ÷ oynaklığı (yıllık)')+
     tile('En büyük düşüş',yuz(o.mdd,0),`en iyi %20 · devir yılda ${tr(o.devir*100,0)}%`,'neg');
   grafik(out);
-  const y=Math.floor(out.length/2), a=ozetle(out.slice(0,y),k), b=ozetle(out.slice(y),k);
+  const y=Math.floor(out.length/2), yi=Math.floor((icler||[]).length/2);
+  const a=ozetle(out.slice(0,y),k,haftalik,(icler||[]).slice(0,yi)), b=ozetle(out.slice(y),k,haftalik,(icler||[]).slice(yi));
   document.getElementById('yarilar').innerHTML=[['İlk yarı',out.slice(0,y),a],['İkinci yarı',out.slice(y),b]].map(([ad,dd,s])=>s?
     tile(`${ad} · ${dd[0].t.slice(0,7)} – ${dd[dd.length-1].t.slice(0,7)}`,yuz(s.fazla),`evrene göre yıllık fark · IC ${tr(s.icM,3)}`,renk(s.fazla)):'').join('');
   document.getElementById('donemTablo').innerHTML='<table><thead><tr><th>Dönem başı</th><th>En iyi %20</th><th>Evren</th><th>En kötü %20</th><th>IC</th><th>Hisse</th></tr></thead><tbody>'+
@@ -207,12 +252,12 @@ function grafik(out){
   alan.addEventListener('pointerleave',()=>{ip.style.display='none';kil.setAttribute('opacity',0);});
 }
 function modelTablosu(){
-  const kol=[['ad','Model'],['ic1','IC 1a'],['ic3','IC 3a'],['ic6','IC 6a'],['ic12','IC 12a'],['t1','t (1a)'],['fark_yillik','Yıllık fark'],['isabet','İsabet']];
+  const kol=[['ad','Model'],['ic_h','IC 1h'],['ic1','IC 1a'],['ic3','IC 3a'],['ic6','IC 6a'],['ic12','IC 12a'],['t1','t (1a)'],['fark_yillik','Yıllık fark'],['isabet','İsabet']];
   let sirali='ic1',yon=-1;
   const ciz=()=>{const sat=M.map(m=>({id:m.id,ad:m.ad,kaynak:m.kaynak,...D.tablo[m.id]})).sort((a,b)=>sirali==='ad'?yon*a.ad.localeCompare(b.ad,'tr'):yon*((a[sirali]??-9)-(b[sirali]??-9)));
     document.getElementById('modelTablo').innerHTML='<table><thead><tr>'+kol.map(([k,a])=>`<th data-k="${k}">${a}${k===sirali?(yon<0?' ↓':' ↑'):''}</th>`).join('')+'</tr></thead><tbody>'+
       sat.map(r=>`<tr data-id="${r.id}"><td>${r.ad}<div class="alt">${r.kaynak.split(';')[0]}</div></td>`+
-        ['ic1','ic3','ic6','ic12'].map(k=>`<td class="${renk(r[k])}">${tr(r[k],3)}</td>`).join('')+
+        ['ic_h','ic1','ic3','ic6','ic12'].map(k=>`<td class="${renk(r[k])}"${k==='ic_h'&&r.t_h!=null?` title="t = ${tr(r.t_h,1)}"`:''}>${tr(r[k],3)}</td>`).join('')+
         `<td>${tr(r.t1,1)}</td><td class="${renk(r.fark_yillik)}">${yuz(r.fark_yillik)}</td><td>${yuz(r.isabet,0,false)}</td></tr>`).join('')+'</tbody></table>';};
   document.getElementById('modelTablo').addEventListener('click',e=>{const th=e.target.closest('th');if(th){const k=th.dataset.k;yon=sirali===k?-yon:-1;sirali=k;ciz();return;}
     const tr_=e.target.closest('tr[data-id]');if(tr_){secili=new Set([tr_.dataset.id]);kaydet();cipler();hesapla();document.getElementById('sonuc').scrollIntoView({behavior:'smooth'});}});
