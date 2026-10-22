@@ -19,6 +19,10 @@ Her hisse için akademik çalışmalara dayanan 18 model puanı (0-100) hesaplan
 
 Skor ve geriye dönük test sayfalarının başındaki **Öneri** kutusu, orta vade (3 ay tutma) için kombinasyon taramasında en sağlam çıkan model setini tek dokunuşla seçer. Öneriler `oneri.py` dosyasındadır: BIST'te 52 hafta zirvesi + Momentum + Düşük oynaklık; ABD'de zayıf sinyal olarak 52 hafta zirvesi + Sürekli momentum + Düşük özgün oynaklık.
 
+**Duygu modelleri (yalnızca ABD, `duygu.py`):** açığa satış oranı (FINRA'nın günlük açığa satış hacmi ÷ toplam hacim, son 20 gün; Wang, Yan & Zheng 2020) ve kazanç sürprizi (son açıklanan hisse başı kâr − analist beklentisi, fiyata bölünmüş; Bernard & Thomas 1989). Açığa satış verisi her gün FINRA'dan, kazanç takvimi Yahoo'dan gelir. Geçmişleri `veri-arsivi` sürümünde (`finra_abd.pkl.gz`, `kazanc_abd.pkl.gz`) tutulur ve cumartesi günleri güncellenir.
+
+**Araştırma verisi (`arastirma_veri.py`, "Araştırma verisi" iş akışı, elle çalıştırılır):** yeni model denemeleri için FINRA, Yahoo analist notları/kazanç takvimi ve Nasdaq sektör listesini toplayıp `arastirma-verisi` sürümüne yükler. SEC EDGAR, GitHub sunucularının IP adreslerini engellediği için oradan çalışmıyor.
+
 Puan, hissenin o modeldeki değerinin aynı borsadaki likit hisseler arasındaki sırasıdır. Sayfada modeller seçilir; toplam puan seçili modellerin ortalamasıdır. Seçim adres çubuğunda (`#m=...`) saklanır. Temel veriler (E/P, B/M, ROE) Yahoo hisse tarayıcısından gelir; bir borsada yeterli veri yoksa ilgili model devre dışı görünür.
 
 ## Dosyalar

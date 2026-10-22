@@ -14,6 +14,7 @@ Sınırlar (sayfada da yazılır):
 - Hayatta kalma yanlılığı: yalnızca bugün işlem gören hisseler var; geçmişte borsadan
   çıkanlar yok. Bu, özellikle küçük ve zayıf hisselerde sonuçları olduğundan iyi gösterir.
 - Temel veri modelleri (F/K, PD/DD, ROE) test edilemez: geçmişe ait temel veri yok.
+- Duygu modelleri (açığa satış, kazanç sürprizi) yalnızca ABD'de; veri: FINRA ve Yahoo kazanç takvimi.
 - Getiriler brüttür; işlem maliyeti sayfada isteğe bağlı düşülür. Vergi yok.
 """
 
@@ -32,8 +33,9 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 
+import duygu as dy
 import gunluk_rapor as g
-from oneri import ONERI, TARAMA_TARIHI
+from oneri import oneri_json
 
 GECMIS_GUN = 6 * 365 + 40          # ~6 yıl: ilk 13 ay modellerin ısınması, kalan ~5 yıl test
 EVREN = {"bist": 300, "abd": 1000}  # her ay ortalama işlem hacmine göre en likit N hisse
@@ -121,11 +123,12 @@ def haftalik(kod: str, f: dict) -> list[dict]:
     return haftalar
 
 
-def hesapla(kod: str, veri: dict, endeks: pd.Series | None) -> dict:
+def hesapla(kod: str, veri: dict, endeks: pd.Series | None, duygu_veri: dict | None = None) -> dict:
     f = cerceve(veri)
     c, h, v, getiri, c_dolu = f["c"], f["h"], f["v"], f["getiri"], f["c_dolu"]
 
-    modeller = [m for m in g.MODELLER if m["id"] not in TEMEL_MODELLER]
+    modeller = [m for m in g.MODELLER if m["id"] not in TEMEL_MODELLER
+                and (duygu_veri is not None or m["id"] not in g.DUYGU_MODELLER)]
     tarihler = [t for t in ay_sonlari(c.index) if c.index.get_loc(t) >= PENCERE]
     if tarihler and tarihler[-1] == c.index[-1]:
         pass  # son ay sonu bugünse ileri getirisi olmaz; aşağıda NaN kalır
@@ -144,7 +147,9 @@ def hesapla(kod: str, veri: dict, endeks: pd.Series | None) -> dict:
             continue
         cw, hw, vw = cw[evren], h.iloc[pos - PENCERE + 1: pos + 1][evren], vw[evren]
         gw = getiri.iloc[pos - PENCERE + 1: pos + 1][evren]
-        ham = g.model_degerleri(cw, hw, vw, gw, endeks)
+        dd = (dy.degerler(duygu_veri.get("finra"), duygu_veri.get("kazanc"), cw.iloc[-1], t)
+              if duygu_veri is not None else None)
+        ham = g.model_degerleri(cw, hw, vw, gw, endeks, None, dd)
         tum = pd.Series(True, index=evren)
         puan = {}
         for md in modeller:
@@ -246,11 +251,6 @@ def hafta_json(sonuc: dict) -> dict:
     return {"modeller": HAFTA_MODELLER, "semboller": semboller, "haftalar": out}
 
 
-def oneri_json(kod: str) -> str:
-    o = ONERI.get(kod)
-    return "null" if not o else json.dumps({**o, "tarih": TARAMA_TARIHI}, ensure_ascii=False).replace("</", "<\\/")
-
-
 def sayfa(veri: dict) -> str:
     sablon = (KLASOR / "geriye_test_sablon.html").read_text(encoding="utf-8")
     js_veri = json.dumps(veri, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
@@ -266,6 +266,23 @@ def sayfa(veri: dict) -> str:
             .replace("{{VERI}}", js_veri))
 
 
+def duygu_hazirla(veri: dict) -> dict | None:
+    """ABD duygu modelleri için geçmiş: FINRA açığa satış (artımlı) ve kazanç takvimi (haftalık tam yenileme)."""
+    try:
+        c, v = veri["Close"], veri["Volume"]
+        yaz("  Duygu verisi: FINRA açığa satış geçmişi")
+        F = dy.finra_guncelle(g.VERI / "finra_abd.pkl", semboller=set(c.columns))
+        islem = (c * v).iloc[-20:].mean()
+        son = c.ffill().iloc[-1]
+        likit = islem[(islem >= g.PIYASALAR["abd"]["min_islem_hacmi"]) & (son >= 2)].index
+        K = dy.kazanc_guncelle(g.VERI / "kazanc_abd.pkl", sorted(likit), tam=True)
+        yaz(f"  Duygu: FINRA {F['kisa'].shape}, kazanç {len(K['olaylar'])} hisse")
+        return {"finra": F, "kazanc": K}
+    except Exception as hata:  # noqa: BLE001
+        yaz(f"  Duygu verisi hazırlanamadı, duygu modelleri test dışı: {hata!r}")
+        return None
+
+
 def calistir(kod: str, tam: bool) -> Path:
     ayar = g.PIYASALAR[kod]
     basla = time.time()
@@ -274,7 +291,8 @@ def calistir(kod: str, tam: bool) -> Path:
     veri = g.fiyatlari_guncelle(kod, liste["sembol"].tolist(), tam, gun=GECMIS_GUN,
                                 dosya=f"gecmis_{kod}.pkl", alanlar=["Close", "High", "Volume"])
     endeks = g.endeksleri_indir(ayar, gun=GECMIS_GUN).get(ayar["endeks"][0])
-    sonuc = hesapla(kod, veri, endeks)
+    duygu_veri = duygu_hazirla(veri) if kod == "abd" else None
+    sonuc = hesapla(kod, veri, endeks, duygu_veri)
     if not sonuc["aylar"]:
         sys.exit("Test için yeterli geçmiş yok.")
     tablo = istatistik(sonuc)

@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
-from oneri import ONERI, TARAMA_TARIHI
+from oneri import oneri_json
 
 CSS = """
 :root{--bg:#f6f7f9;--kart:#fff;--yazi:#1c2128;--soluk:#5b6470;--cizgi:#e3e6ea;--vurgu:#0b6bcb;
@@ -83,7 +83,7 @@ color:var(--soluk);white-space:nowrap}
 .oneri .bas{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .oneri .bas>span>b{color:var(--vurgu)}.oneri p{margin:6px 0 0;line-height:1.5}
 .oneri .etiket{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid currentColor;margin-left:6px;white-space:nowrap}
-.oneri .etiket.zayif{color:var(--uyari)}.oneri .etiket.guclu{color:var(--pos)}
+.oneri .etiket.zayif{color:var(--uyari)}.oneri .etiket.guclu{color:var(--pos)}.oneri .etiket.orta{color:var(--vurgu)}
 .oneri button{border:0;background:var(--vurgu);color:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .oneri details{margin-top:4px}.oneri summary{cursor:pointer;color:var(--vurgu)}.oneri p.alt{color:var(--soluk)}
 """
@@ -116,6 +116,7 @@ function cipler(){
   for(const[g,ad]of Object.entries(D.gruplar)){
     const ms=M.filter(m=>m.grup===g), gecerli=ms.filter(m=>VAR.has(m.id)),
       sadece=gecerli.length===secili.size&&gecerli.every(m=>secili.has(m.id));
+    if(!gecerli.length&&ms.every(m=>m.grup==='duygu'))continue;
     const d=document.createElement('div');d.className='grup';
     d.innerHTML=`<div class="grup-bas"><span>${ad}</span><button data-g="${g}">${sadece?'Hepsini seç':'Sadece bunlar'}</button></div><div class="cipler"></div>`;
     for(const m of ms){const b=document.createElement('button');b.className='cip';b.textContent=m.ad;b.dataset.id=m.id;
@@ -188,7 +189,7 @@ const O=JSON.parse(document.getElementById('oneriVeri').textContent||'null');
 if(O&&O.modeller.every(i=>VAR.has(i))){const k=document.getElementById('oneri');k.hidden=false;
   const zayif=O.guven==='zayıf', gt=document.querySelector('a[href*="geriye_test_"]');
   const gtLink=gt?`<a href="${gt.getAttribute('href')}#m=${O.modeller.join(',')}&u=${O.ufuk}">geçmiş performansı gör</a>`:'';
-  k.innerHTML=`<div class="bas"><span><b>Öneri · orta vade (3 ay tut)</b><span class="etiket ${zayif?'zayif':'guclu'}">${zayif?'zayıf sinyal':'sağlam sinyal'}</span></span><button id="oneriUygula">Uygula</button></div>
+  k.innerHTML=`<div class="bas"><span><b>Öneri · orta vade (3 ay tut)</b><span class="etiket ${O.sinif}">${O.etiket}</span></span><button id="oneriUygula">Uygula</button></div>
     <p><b>${O.baslik}</b>${zayif?' · filtre olarak kullan':''}</p>
     <details><summary>Neden?</summary><p>${O.ozet} Uygula'ya basınca bu modeller seçilir ve yalnızca likit hisseler gösterilir. ${gtLink}</p>
     <p class="alt">${O.tarih} tarihli kombinasyon taraması. Yatırım tavsiyesi değildir.</p></details>`;
@@ -206,11 +207,6 @@ def _sayi(x, basamak=4):
     except (TypeError, ValueError):
         return None
     return None if math.isnan(f) or math.isinf(f) else round(f, basamak)
-
-
-def oneri_json(kod: str) -> str:
-    o = ONERI.get(kod)
-    return "null" if not o else json.dumps({**o, "tarih": TARAMA_TARIHI}, ensure_ascii=False).replace("</", "<\\/")
 
 
 def skor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, modeller: list, gruplar: dict,

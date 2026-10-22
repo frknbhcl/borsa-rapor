@@ -90,6 +90,28 @@ jobs:
           key: veri-${{ github.run_id }}
           restore-keys: veri-
 
+      - name: Duygu verisi yoksa arşivden al (ABD)
+        if: steps.secim.outputs.calis == 'true' && steps.secim.outputs.piyasa != 'bist'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          R: ${{ github.repository }}
+        run: |
+          mkdir -p veri
+          for f in kazanc_abd; do
+            if [ ! -f "veri/$f.pkl" ]; then
+              gh release download veri-arsivi --repo "$R" --pattern "$f.pkl.gz" --dir veri --clobber \
+                && gunzip -f "veri/$f.pkl.gz" && echo "$f: arşivden alındı" || echo "$f: arşivde yok"
+            fi
+          done
+          eksik=0; for f in kazanc_abd; do [ -f "veri/$f.pkl" ] || eksik=1; done
+          if [ "$eksik" = 1 ]; then
+            mkdir -p tohum
+            gh release download arastirma-verisi --repo "$R" --pattern 'yahoo_analist.pkl.gz' --dir tohum --clobber || true
+            python duygu.py tohum tohum veri || true
+            rm -rf tohum
+          fi
+
       - name: Raporu oluştur
         if: steps.secim.outputs.calis == 'true'
         run: python gunluk_rapor.py ${{ steps.secim.outputs.piyasa }} --acma

@@ -540,11 +540,20 @@ MODELLER += [
     {"id": "karlilik", "etiket": "özsermaye kârlılığı (ROE)", "grup": "uzun", "ad": "Kârlılık (ROE)", "yon": 1, "bicim": "yuzde",
      "kaynak": "Hou, Xue & Zhang (2015); Fama & French (2015)",
      "aciklama": "Özsermayesine göre daha kârlı şirketler daha yüksek getiri sağlıyor; modern faktör modellerinin (q-faktör, beş faktör) temel unsuru. Hesap: son 12 ay hisse başı kâr ÷ hisse başı defter değeri. Dikkat: hisse geri alımı yapan şirketlerde özsermaye küçüldüğü için ROE abartılı çıkar (ör. Apple ~%120); değer modeliyle birlikte kullanılması önerilir. BIST'te Yahoo verisi ve TMS 29 nedeniyle güvenilir değil. Geçmiş temel veri olmadığı için geriye dönük test edilemiyor."},
+    {"id": "aciga_satis", "etiket": "açığa satış / toplam hacim (20g)", "grup": "duygu", "ad": "Açığa satış oranı", "yon": -1, "bicim": "oran",
+     "kaynak": "Wang, Yan & Zheng (2020); Diether, Lee & Werner (2009)",
+     "aciklama": "Yoğun açığa satılan hisseler sonraki aylarda geride kalma eğiliminde; açığa satanlar çoğunlukla bilgili yatırımcılar. Ham değer: son 20 işlem gününde açığa satış hacmi ÷ toplam hacim (FINRA günlük verisi). Yalnızca ABD."},
+    {"id": "kazanc_surprizi", "etiket": "son kazanç sürprizi ÷ fiyat", "grup": "duygu", "ad": "Kazanç sürprizi", "yon": 1, "bicim": "yuzde",
+     "kaynak": "Bernard & Thomas (1989); Livnat & Mendenhall (2006)",
+     "aciklama": "Analist beklentisini aşan kâr açıklayan şirketler sonraki aylarda da iyi gitme eğiliminde (bilanço sonrası sürüklenme). Ham değer: son 100 gün içinde açıklanan hisse başı kâr − analist beklentisi, hisse fiyatına bölünmüş. Kaynak: Yahoo kazanç takvimi. Yalnızca ABD."},
 ]
-GRUPLAR = {"kisa": "Kısa vade · 1 hafta–1 ay", "orta": "Orta vade · 3–12 ay", "uzun": "Uzun vade · 1 yıl+"}
+GRUPLAR = {"kisa": "Kısa vade · 1 hafta–1 ay", "orta": "Orta vade · 3–12 ay", "uzun": "Uzun vade · 1 yıl+",
+           "duygu": "Duygu · açığa satış ve kazanç (ABD)"}
+DUYGU_MODELLER = {"aciga_satis", "kazanc_surprizi"}
 
 
-def model_degerleri(c, h, v, getiri, endeks, temel: pd.DataFrame | None = None) -> pd.DataFrame:
+def model_degerleri(c, h, v, getiri, endeks, temel: pd.DataFrame | None = None,
+                    duygu: pd.DataFrame | None = None) -> pd.DataFrame:
     """Her model için ham değer (hisse başına bir sayı)."""
     son = c.iloc[-1]
     ham = pd.DataFrame(index=c.columns)
@@ -645,6 +654,10 @@ def model_degerleri(c, h, v, getiri, endeks, temel: pd.DataFrame | None = None) 
         # Kâr ve defter değeri farklı para birimlerinde raporlanabiliyor (ör. THYAO: fiyat TL,
         # finansallar USD); karışmasın diye para birimi uyuşmayanlar hesaplanmaz.
         ham["karlilik"] = (eps / defter).where(ayni_para & (defter > 0))
+
+    # Duygu modelleri (yalnızca ABD; FINRA ve Yahoo kazanç takvimi, bkz. duygu.py)
+    for k in ("aciga_satis", "kazanc_surprizi"):
+        ham[k] = duygu[k].reindex(ham.index) if duygu is not None and k in duygu.columns else np.nan
     return ham.replace([np.inf, -np.inf], np.nan)
 
 
@@ -661,7 +674,8 @@ def puanla(deger: pd.Series, yon: int, referans: pd.Series) -> pd.Series:
     return pd.Series(np.where(np.isnan(x), np.nan, np.round(puan)), index=deger.index)
 
 
-def hesapla(veri: dict, endeks: pd.Series | None, ayar: dict, liste: pd.DataFrame):
+def hesapla(veri: dict, endeks: pd.Series | None, ayar: dict, liste: pd.DataFrame,
+            duygu: pd.DataFrame | None = None):
     temel = liste.drop_duplicates("sembol").set_index("sembol")
     adlar = temel["ad"]
     c, h, l, v = (veri[a] for a in ("Close", "High", "Low", "Volume"))
@@ -752,7 +766,7 @@ def hesapla(veri: dict, endeks: pd.Series | None, ayar: dict, liste: pd.DataFram
                   & (m["kapanis"] >= ayar["min_fiyat"]))
 
     # Akademik modellerin ham değerleri ve 0-100 puanları
-    ham = model_degerleri(c, h, v, getiri, endeks, temel)
+    ham = model_degerleri(c, h, v, getiri, endeks, temel, duygu)
     referans = m["likit"] & m["guncel"]
     for mdl in MODELLER:
         m[f"h_{mdl['id']}"] = ham[mdl["id"]]
@@ -1049,6 +1063,26 @@ Korelasyon ve beta, {ayar['endeks'][0]} ile son 60 günlük günlük getiriler �
 # 6) Ana akış
 # ---------------------------------------------------------------------------
 
+def duygu_verisi(veri: dict, ayar: dict) -> pd.DataFrame | None:
+    """ABD duygu modelleri için güncel değerler (açığa satış oranı, kazanç sürprizi)."""
+    import duygu
+    try:
+        c, v = veri["Close"], veri["Volume"]
+        son = c.ffill().iloc[-1]
+        islem = (c * v).iloc[-20:].mean()
+        likit = islem[(islem >= ayar["min_islem_hacmi"]) & (son >= ayar["min_fiyat"])].index
+        yaz("  Duygu verisi (FINRA açığa satış, kazanç sürprizleri)")
+        F = duygu.finra_son()
+        K = duygu.kazanc_guncelle(VERI / "kazanc_abd.pkl", sorted(likit))
+        df = duygu.degerler(F, K, son, c.index[-1])
+        yaz(f"  Duygu: açığa satış {df['aciga_satis'].notna().sum()}, kazanç sürprizi "
+            f"{df['kazanc_surprizi'].notna().sum()} hisse")
+        return df
+    except Exception as hata:  # noqa: BLE001
+        yaz(f"  Duygu verisi alınamadı: {hata!r}")
+        return None
+
+
 def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
     ayar = PIYASALAR[kod]
     basla = time.time()
@@ -1058,8 +1092,9 @@ def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
     veri = fiyatlari_guncelle(kod, liste["sembol"].tolist(), tam)
     endeksler = endeksleri_indir(ayar)
     endeks = endeksler.get(ayar["endeks"][0])
+    duygu_df = duygu_verisi(veri, ayar) if kod == "abd" else None
 
-    m, son_tarih = hesapla(veri, endeks, ayar, liste)
+    m, son_tarih = hesapla(veri, endeks, ayar, liste, duygu_df)
 
     banner = ""
     simdi = datetime.now(ZoneInfo(ayar["saat_dilimi"]))

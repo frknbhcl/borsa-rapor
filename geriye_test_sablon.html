@@ -33,7 +33,7 @@ h1{font-size:22px;margin:4px 0 2px}h2{font-size:16px;margin:0 0 8px}.alt{color:v
 .oneri .bas{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .oneri b{color:var(--vurgu)}.oneri p{margin:6px 0 0;color:var(--yazi);line-height:1.5}.oneri p.alt{color:var(--soluk)}
 .oneri .etiket{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid currentColor;margin-left:6px;white-space:nowrap}
-.oneri .etiket.zayif{color:var(--uyari)}.oneri .etiket.guclu{color:var(--pos)}
+.oneri .etiket.zayif{color:var(--uyari)}.oneri .etiket.guclu{color:var(--pos)}.oneri .etiket.orta{color:var(--vurgu)}
 .oneri button{border:0;background:var(--vurgu);color:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .ozet{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .tile{background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:12px}
@@ -65,6 +65,7 @@ footer{color:var(--soluk);font-size:12px;margin-top:24px;line-height:1.5}
 <ul>
 <li><b>Hayatta kalma yanlılığı:</b> Yalnızca bugün işlem gören hisseler test edildi; geçmişte borsadan çıkanlar yok. Sonuçlar olduğundan iyi görünebilir, özellikle zayıf hisseleri ödüllendiren modellerde.</li>
 <li>Temel veri modelleri (F/K, PD/DD, ROE) test edilemiyor; geçmişe ait temel veri yok.</li>
+<li>Duygu modelleri (açığa satış oranı, kazanç sürprizi) yalnızca ABD'de var. Kazanç takvimi bugün listede olan hisseler için indirildi; geçmişte borsadan çıkan şirketler yok.</li>
 <li>Çok sayıda kombinasyon deneyip en iyisini seçmek, geçmişe uyan ama geleceğe taşınmayan sonuç verir. Kombinasyonun dönemin iki yarısında da tutarlı olup olmadığına bak.</li>
 </ul></div>
 
@@ -140,8 +141,7 @@ document.querySelector('.hazir').addEventListener('click',e=>{const b=e.target.c
   document.getElementById('ufuk').value=u;kaydet();cipler();hesapla();});
 const O=JSON.parse(document.getElementById('oneriVeri').textContent||'null');
 if(O&&O.modeller.every(i=>i in idx)){const k=document.getElementById('oneri');k.hidden=false;
-  const zayif=O.guven==='zayıf';
-  k.innerHTML=`<div class="bas"><span><b>Öneri · orta vade (3 ay)</b><span class="etiket ${zayif?'zayif':'guclu'}">${zayif?'zayıf sinyal':'sağlam sinyal'}</span></span><button id="oneriUygula">Uygula</button></div>
+  k.innerHTML=`<div class="bas"><span><b>Öneri · orta vade (3 ay)</b><span class="etiket ${O.sinif}">${O.etiket}</span></span><button id="oneriUygula">Uygula</button></div>
     <p><b style="color:var(--yazi)">${O.baslik}.</b> ${O.ozet}</p><p class="alt">${O.tarih} tarihli kombinasyon taraması: 155 kombinasyon, seçim dönemin ilk yarısında yapıldı, ikinci yarı örneklem dışı kontrol. Yatırım tavsiyesi değildir.</p>`;
   document.getElementById('oneriUygula').onclick=()=>{secili=new Set(O.modeller);document.getElementById('ufuk').value=O.ufuk;
     kaydet();cipler();hesapla();document.getElementById('sonuc').scrollIntoView({behavior:'smooth'});};}

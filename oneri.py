@@ -4,6 +4,9 @@ Kaynak: 22.10.2026 tarihli kombinasyon taraması. 5 orta vade modelinin bütün 
 bağlı bir risk modeliyle birlikte (155 kombinasyon) 3 ay tutmayla denendi. Seçim dönemin ilk
 yarısında (2021-11 – 2024-02) yapıldı, ikinci yarı (2024-03 – 2026-07) örneklem dışı kontrol oldu.
 Rakamlar maliyetsiz; en iyi %20'nin evrene göre yıllık farkıdır.
+
+ABD önerisi aynı gün yeni duygu modelleriyle (duygu.py: açığa satış oranı, kazanç sürprizi) yeniden
+tarandı: 13 modelden 4'e kadar bütün kombinasyonlar (1.092), aynı ilk yarı / ikinci yarı ayrımıyla.
 """
 
 ONERI = {
@@ -17,13 +20,26 @@ ONERI = {
                  "düşük oynaklık şişirilmiş hisseleri eledi. Yalnız momentum bu ayda −%15,7 geride kaldı."),
     },
     "abd": {
-        "modeller": ["zirve52", "surekli_mom", "dusuk_ioyn"],
+        "modeller": ["surekli_mom", "dusuk_ioyn", "aciga_satis", "kazanc_surprizi"],
         "ufuk": "3",
-        "baslik": "52 hafta zirvesi + Sürekli momentum + Düşük özgün oynaklık",
-        "guven": "zayıf",
-        "ozet": ("ABD'de hiçbir orta vade kombinasyonu güvenilir değil. Bu en sağlamı: IC 0,072 (t 1,8) ama "
-                 "evrene göre yılda yalnızca %0 ile +%2 arası, dönemin ikinci yarısında eksiye dönüyor. Hisse seçmekten çok "
-                 "riskli hisseleri elemek için filtre olarak kullan."),
+        "baslik": "Sürekli momentum + Düşük özgün oynaklık + Açığa satış + Kazanç sürprizi",
+        "guven": "orta",
+        "ozet": ("Fiyat modelleri ABD'de tek başına zayıf kaldı; iki duygu modeli (FINRA açığa satış oranı ve "
+                 "analist beklentisine göre kazanç sürprizi) eklenince 3 ay tutmada IC 0,086 (t 3,0). En iyi %20 "
+                 "evreni yılda +%6 ile +%7 arası geçti (önceki öneride %0 ile +%2); dönemin iki yarısında da "
+                 "tutarlı. Duygu modelleri fiyat modelleriyle neredeyse ilişkisiz, bu yüzden birlikte işe yarıyor."),
     },
 }
 TARAMA_TARIHI = "22.10.2026"
+GUVEN_ETIKET = {"güçlü": "sağlam sinyal", "orta": "orta güçte sinyal", "zayıf": "zayıf sinyal"}
+
+
+def oneri_json(kod: str) -> str:
+    """Sayfalara gömülen JSON (oneriVeri)."""
+    import json
+    o = ONERI.get(kod)
+    if not o:
+        return "null"
+    sinif = {"güçlü": "guclu", "orta": "orta", "zayıf": "zayif"}[o["guven"]]
+    return json.dumps({**o, "tarih": TARAMA_TARIHI, "etiket": GUVEN_ETIKET[o["guven"]], "sinif": sinif},
+                      ensure_ascii=False).replace("</", "<\\/")
