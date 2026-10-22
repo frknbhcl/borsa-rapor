@@ -802,14 +802,25 @@ def dogrula(args) -> dict:
             if len(adj) == 0:
                 h_kayit.update(yahoo_hata="rapor tarihinden önce veri yok", metrikler=[])
             else:
-                if pd.notna(son_veri) and adj.index[-1] < son_veri:
-                    h_kayit["uyari"] = (f"Yahoo'daki son gün ({adj.index[-1].date()}) rapordaki son_veri'den "
-                                        f"({son_veri.date()}) eski")
-                ek = endeks_kap[endeks_kap.index <= adj.index[-1]] if endeks_kap is not None else None
-                yeni = gostergeleri_hesapla(adj, ek)
-                h_kayit["metrikler"] = [metrik_karsilastir(m, float(r[m]) if m in satir_sozu.columns else float("nan"),
-                                                           yeni[m]) for m in METRIK_SOZ]
-                h_kayit["korelasyon_yahoo"] = yeni["korelasyon"] if gecerli(yeni["korelasyon"]) else None
+                eski_veri = pd.notna(son_veri) and adj.index[-1] < son_veri
+                if eski_veri:
+                    # Yahoo bazı saatlerde son işlem gününü geçici olarak vermiyor. Farklı günleri
+                    # karşılaştırmak yanlış "hata" üretir; bu hisse yeniden hesaplamada atlanır.
+                    not_ = (f"Yahoo şu an son günü ({son_veri.date()}) vermiyor, en son {adj.index[-1].date()}; "
+                            f"farklı günler karşılaştırılamaz")
+                    h_kayit["uyari"] = not_
+                    h_kayit["metrikler"] = [{"metrik": m, "etiket": METRIK_SOZ[m][1],
+                                             "rapor": float(r[m]) if m in satir_sozu.columns else None,
+                                             "yeni": None, "tolerans_turu": METRIK_SOZ[m][3],
+                                             "tolerans": METRIK_SOZ[m][4], "fark": None,
+                                             "durum": "atlandı", "not": not_} for m in METRIK_SOZ]
+                    h_kayit["korelasyon_yahoo"] = None
+                else:
+                    ek = endeks_kap[endeks_kap.index <= adj.index[-1]] if endeks_kap is not None else None
+                    yeni = gostergeleri_hesapla(adj, ek)
+                    h_kayit["metrikler"] = [metrik_karsilastir(m, float(r[m]) if m in satir_sozu.columns else float("nan"),
+                                                               yeni[m]) for m in METRIK_SOZ]
+                    h_kayit["korelasyon_yahoo"] = yeni["korelasyon"] if gecerli(yeni["korelasyon"]) else None
         h_kayit["korelasyon_rapor"] = float(r["korelasyon"]) if "korelasyon" in satir_sozu.columns and \
             gecerli(r["korelasyon"]) else None
 
