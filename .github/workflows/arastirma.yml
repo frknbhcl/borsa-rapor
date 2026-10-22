@@ -1,0 +1,50 @@
+name: Araştırma verisi
+
+# ABD için ek veri (SEC bilançoları, FINRA açığa satış, analist notları, sektörler) toplar ve
+# "arastirma-verisi" sürümüne (Releases) yükler. Yalnızca elle çalıştırılır.
+on:
+  workflow_dispatch:
+    inputs:
+      adimlar:
+        description: "Adımlar (boşlukla): sec finra yahoo nasdaq"
+        default: "sec finra yahoo nasdaq"
+
+permissions:
+  contents: write
+
+jobs:
+  hazirla:
+    runs-on: ubuntu-latest
+    outputs:
+      adimlar: ${{ steps.a.outputs.json }}
+    steps:
+      - id: a
+        run: echo "json=$(echo '${{ inputs.adimlar }}' | jq -Rc 'split(" ") | map(select(length>0))')" >> "$GITHUB_OUTPUT"
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release view arastirma-verisi --repo "${{ github.repository }}" >/dev/null 2>&1 ||
+             gh release create arastirma-verisi --repo "${{ github.repository }}" --title "Araştırma verisi" --notes "ABD ek verileri (SEC, FINRA, Yahoo analist, Nasdaq sektör). arastirma_veri.py üretir."
+
+  topla:
+    needs: hazirla
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        adim: ${{ fromJson(needs.hazirla.outputs.adimlar) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python arastirma_veri.py ${{ matrix.adim }}
+      - name: Sürüme yükle
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ls -la arastirma_veri || true
+          gh release upload arastirma-verisi arastirma_veri/* --repo "${{ github.repository }}" --clobber
