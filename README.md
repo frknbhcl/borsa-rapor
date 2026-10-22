@@ -12,12 +12,12 @@ Raporlar sitenin ana sayfasında; `bist.html` ve `abd.html` her zaman en son rap
 
 ## Skor sayfası
 
-Her hisse için akademik çalışmalara dayanan 18 model puanı (0-100) hesaplanır:
+Her hisse için akademik çalışmalara dayanan 20 model puanı (0-100) hesaplanır (2 duygu modeli yalnızca ABD):
 - **Kısa vade:** haftalık dönüş (Lehmann 1990), aylık dönüş (Jegadeesh 1990), hacim primi (Gervais, Kaniel & Mingelgrin 2001), piyango etkisi/MAX (Bali, Cakici & Whitelaw 2011), düşük çarpıklık (Amaya vd. 2015)
 - **Orta vade:** 52 hafta zirvesi (George & Hwang 2004), 12-1 momentum (Jegadeesh & Titman 1993), 200 gün trendi (Moskowitz, Ooi & Pedersen 2012), kalıntı momentum (Blitz, Huij & Martens 2011), sürekli momentum (Da, Gurun & Warachka 2014)
 - **Uzun vade:** düşük oynaklık (Blitz & van Vliet 2007), düşük beta (Frazzini & Pedersen 2014), düşük özgün oynaklık (Ang vd. 2006), düşük korelasyon (Asness, Frazzini, Gormsen & Pedersen 2020), illikidite primi (Amihud 2002), değer E/P ve B/M (Basu 1977; Fama & French 1992), kârlılık ROE (Hou, Xue & Zhang 2015)
 
-Skor ve geriye dönük test sayfalarının başındaki **Öneri** kutusu, orta vade (3 ay tutma) için kombinasyon taramasında en sağlam çıkan model setini tek dokunuşla seçer. Öneriler `oneri.py` dosyasındadır: BIST'te 52 hafta zirvesi + Momentum + Düşük oynaklık; ABD'de zayıf sinyal olarak 52 hafta zirvesi + Sürekli momentum + Düşük özgün oynaklık.
+Skor ve geriye dönük test sayfalarının başındaki **Öneri** kutusu, orta vade (3 ay tutma) için kombinasyon taramasında en sağlam çıkan model setini tek dokunuşla seçer. Öneriler `oneri.py` dosyasındadır: BIST'te 52 hafta zirvesi + Momentum + Düşük oynaklık; ABD'de Sürekli momentum + Düşük özgün oynaklık + Açığa satış oranı + Kazanç sürprizi.
 
 **Duygu modelleri (yalnızca ABD, `duygu.py`):** açığa satış oranı (FINRA'nın günlük açığa satış hacmi ÷ toplam hacim, son 20 gün; Wang, Yan & Zheng 2020) ve kazanç sürprizi (son açıklanan hisse başı kâr − analist beklentisi, fiyata bölünmüş; Bernard & Thomas 1989). Açığa satış verisi her gün FINRA'dan, kazanç takvimi Yahoo'dan gelir. Geçmişleri `veri-arsivi` sürümünde (`finra_abd.pkl.gz`, `kazanc_abd.pkl.gz`) tutulur ve cumartesi günleri güncellenir.
 
