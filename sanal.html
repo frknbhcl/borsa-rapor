@@ -291,6 +291,7 @@ async function uzakYaz(veri, eskiSha, mesaj) {
   const r = await gh(`/repos/${REPO}/contents/${HESAP}`, {method: 'PUT', headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({message: mesaj, content: b64e(JSON.stringify(veri, null, 1)), branch: DAL, ...(eskiSha ? {sha: eskiSha} : {})})});
   if (r.status === 409 || r.status === 422) return {cakisma: true};
+  if (r.status === 403 || r.status === 404) throw new Error('Token\'ın borsa-rapor deposuna yazma izni yok (Contents: Read and write gerekli)');
   if (!r.ok) throw new Error(r.status);
   return {sha: (await r.json()).content.sha};
 }
@@ -314,7 +315,7 @@ async function degistir(fn, mesaj) {
       if (y.cakisma) continue;
       depo = d; sha = y.sha; yerelYaz(depo); bulut('ok', 'GitHub ile senkron'); return true;
     } catch (e) {
-      bulut('hata', 'GitHub\'a yazılamadı'); bildir(`GitHub'a kaydedilemedi (${e.message}). Bağlantıyı kontrol et.`); return false;
+      bulut('hata', 'GitHub\'a yazılamadı'); bildir(`GitHub'a kaydedilemedi: ${e.message}`); return false;
     }
   }
   bulut('hata', 'Çakışma'); bildir('Kaydedilemedi: başka bir cihazdan aynı anda değişiklik var. Tekrar dene.'); return false;
