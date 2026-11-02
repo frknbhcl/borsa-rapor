@@ -62,7 +62,7 @@ footer{color:var(--soluk);font-size:12px;margin-top:24px;line-height:1.5}
 <body><main>
 <div class="ust"><a href="index.html">← Tüm raporlar</a><span><a id="skorLink" href="skor_bist.html">Skorlar →</a></span></div>
 <h1>Sanal Portföy</h1>
-<div class="alt">Sanal parayla al-sat dene. Gerçek para yok; işlemler son rapordaki kapanış fiyatından yapılır.</div>
+<div class="alt">Sanal parayla al-sat dene. Gerçek para yok; işlemler son rapordaki fiyattan yapılır (fiyatı elle de değiştirebilirsin).</div>
 
 <div class="sekmeler" role="tablist">
   <button class="sekme" role="tab" data-kod="bist" aria-selected="true">Borsa İstanbul</button>
@@ -326,7 +326,7 @@ function hepsiniCiz() {
   document.getElementById('skorLink').href = `skor_${kod}.html`;
   if (!f) { d.textContent = ''; u.innerHTML = '<div class="banner">Fiyat verisi yüklenemedi. Sayfayı yenile; sorun sürerse rapor henüz bu özelliği içermiyor olabilir.</div>'; }
   else {
-    d.textContent = `Fiyatlar: ${tarihTR(f.tarih)} kapanışı · güncelleme ${f.olusturma.split(' ').map((x, i) => i ? x : tarihTR(x)).join(' ')}`;
+    d.textContent = `Fiyatlar: ${tarihTR(f.tarih)} ${f.kesin ? 'kapanışı' : 'seans içi (anlık)'} · güncelleme ${f.olusturma.split(' ').map((x, i) => i ? x : tarihTR(x)).join(' ')}`;
     u.innerHTML = (f.kesin ? '' : '<div class="banner">Seans sürüyor: fiyatlar anlık ve kesinleşmemiş.</div>') +
       (kaydedilebilir ? '' : '<div class="banner">Bu tarayıcı veri kaydetmeye izin vermiyor (gizli sekme olabilir); sayfa kapanınca portföy silinir.</div>');
     const dl = document.getElementById('semboller');
