@@ -1,0 +1,24 @@
+{
+ "bist": {
+  "baslangic": 100000,
+  "komisyon": 0.2,
+  "nakit": 100000,
+  "poz": {},
+  "islemler": [],
+  "kurulus": null,
+  "gerceklesen": 0,
+  "izleme": []
+ },
+ "abd": {
+  "baslangic": 10000,
+  "komisyon": 0.1,
+  "nakit": 10000,
+  "poz": {},
+  "islemler": [],
+  "kurulus": null,
+  "gerceklesen": 0,
+  "izleme": []
+ },
+ "surum": 2,
+ "guncelleme": "2026-11-02 14:38"
+}
