@@ -2,13 +2,19 @@
  "bist": {
   "baslangic": 100000,
   "komisyon": 0.2,
-  "nakit": 98076.03759999998,
+  "nakit": 97374.13659999998,
   "poz": {
    "KCHOL": {
     "adet": 5,
     "maliyet": 193.6866,
     "ilk": "2026-11-02 15:24",
     "sonFiyat": 193.3
+   },
+   "BIMAS": {
+    "adet": 2,
+    "maliyet": 350.9505,
+    "ilk": "2026-11-02 15:26",
+    "sonFiyat": 350.25
    }
   },
   "islemler": [
@@ -39,13 +45,23 @@
     "tutar": 24030.44,
     "komisyon": 48.16,
     "kz": -955.53
+   },
+   {
+    "t": "2026-11-02 15:26",
+    "tip": "al",
+    "s": "BIMAS",
+    "adet": 2,
+    "fiyat": 350.25,
+    "tutar": 701.9,
+    "komisyon": 1.4
    }
   ],
   "kurulus": "2026-11-02 14:39",
   "gerceklesen": -955.5294000000031,
   "izleme": [
    "SUNTK",
-   "KCHOL"
+   "KCHOL",
+   "BIMAS"
   ],
   "endeks0": 10762.2001953125
  },
@@ -60,5 +76,5 @@
   "izleme": []
  },
  "surum": 2,
- "guncelleme": "2026-11-02 15:25"
+ "guncelleme": "2026-11-02 15:26"
 }
