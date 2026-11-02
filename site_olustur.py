@@ -40,6 +40,7 @@ h1{font-size:26px;margin:0 0 4px}h2{font-size:16px;margin:28px 0 10px;color:var(
 @media (max-width:480px){.kartlar{grid-template-columns:1fr}}
 .kart{display:block;background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:18px}
 .kart b{display:block;font-size:18px;margin-bottom:4px}
+a.kart{color:inherit;text-decoration:none}.kart.genis{grid-column:1/-1}
 .kart .linkler{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px}
 .kart .ok{color:var(--vurgu);font-weight:600;font-size:15px;text-decoration:none}
 .kart .ok.ikincil{font-weight:500}
@@ -83,7 +84,8 @@ def main() -> None:
                                          skor if (kaynak / skor).exists() else None)
                 (arsiv / dosya.name).write_text(icerik, encoding="utf-8")
             elif (SKOR_KALIP.match(dosya.name) or dosya.name.endswith("_tum.csv")
-                  or dosya.name.endswith("_dogrulama.html") or dosya.name.endswith("_dogrulama.json")):
+                  or dosya.name.endswith("_dogrulama.html") or dosya.name.endswith("_dogrulama.json")
+                  or dosya.name.endswith("_fiyat.json")):
                 shutil.copy2(dosya, arsiv / dosya.name)
 
     # 2) Eski raporları temizle
@@ -116,13 +118,17 @@ def main() -> None:
             if (arsiv / skor_ad).exists():
                 skor = (arsiv / skor_ad).read_text(encoding="utf-8")
                 skor = (skor.replace('href="../index.html"', 'href="index.html"').replace(f'href="{ad}"', f'href="{k}.html"')
-                        .replace('href="../geriye_test_', 'href="geriye_test_'))
+                        .replace('href="../geriye_test_', 'href="geriye_test_')
+                        .replace('href="../sanal.html', 'href="sanal.html'))
                 (site / f"skor_{k}.html").write_text(skor, encoding="utf-8")
                 skor_link = f'<a class="ok" href="skor_{k}.html">Skorlar →</a>'
             dogrulama_ad = ad.replace(".html", "_dogrulama.html")
             if (arsiv / dogrulama_ad).exists():
                 shutil.copy2(arsiv / dogrulama_ad, site / f"dogrulama_{k}.html")
                 skor_link += f'<a class="ok ikincil" href="dogrulama_{k}.html">Doğrulama</a>'
+            fiyat_ad = ad.replace(".html", "_fiyat.json")
+            if (arsiv / fiyat_ad).exists():
+                shutil.copy2(arsiv / fiyat_ad, site / f"fiyat_{k}.json")
             if (site / f"geriye_test_{k}.html").exists():
                 skor_link += f'<a class="ok ikincil" href="geriye_test_{k}.html">Geriye dönük test</a>'
             kartlar.append(
@@ -158,6 +164,15 @@ def main() -> None:
         satirlar.append(f'<li><span class="tarih">{tarih_metni(tarih)}</span>{"".join(piyasalar)}</li>')
     arsiv_html = f"<ul>{''.join(satirlar)}</ul>" if satirlar else '<div class="bos">Arşiv boş.</div>'
 
+    # Sanal portföy sayfası (fiyatlar fiyat_bist.json / fiyat_abd.json'dan)
+    sanal = Path(__file__).resolve().parent / "sanal.html"
+    sanal_kart = ""
+    if sanal.exists() and any((site / f"fiyat_{k}.json").exists() for k in ("bist", "abd")):
+        shutil.copy2(sanal, site / "sanal.html")
+        sanal_kart = ('<a class="kart genis" href="sanal.html"><b>Sanal portföy</b>'
+                      '<span class="alt">Sanal parayla hisse al-sat, kâr/zararını takip et.</span>'
+                      '<span class="linkler"><span class="ok">Aç →</span></span></a>')
+
     simdi = datetime.now(ZoneInfo("Europe/Istanbul")).strftime("%d.%m.%Y %H:%M")
     (site / "index.html").write_text(f"""<!doctype html>
 <html lang="tr"><head><meta charset="utf-8">
@@ -167,7 +182,7 @@ def main() -> None:
 <body><main>
 <h1>Borsa Raporları</h1>
 <div class="alt">Son güncelleme: {simdi} (TR)</div>
-<div class="kartlar">{''.join(kartlar)}</div>
+<div class="kartlar">{''.join(kartlar)}{sanal_kart}</div>
 <h2>Arşiv (son {SAKLAMA_GUN} gün)</h2>
 {arsiv_html}
 <footer>Raporlar hafta içi her gün otomatik oluşur: BIST akşam 18:40'tan, ABD gece 00:40'tan itibaren (GitHub bazen birkaç saat geciktirebiliyor).

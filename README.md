@@ -31,6 +31,7 @@ Puan, hissenin o modeldeki değerinin aynı borsadaki likit hisseler arasındaki
 - `skor_sayfasi.py`: etkileşimli skor sayfası
 - `dogrula.py`: bağımsız doğrulama; her çalıştırmada örnek hisselerin göstergelerini sıfırdan yeniden hesaplar ve fiyatları Yahoo dışı kaynaklarla (ABD: Stooq/Nasdaq, BIST: İş Yatırım) karşılaştırır. Sonuç sitede "Doğrulama" sayfasında. Testler: `python -m unittest test_dogrula`
 - `geriye_test.py` + `geriye_test_sablon.html`: geriye dönük test; her cumartesi ~6 yıllık geçmişle, her ay sonu modellerin o günkü puanını (ileriye bakmadan) hesaplar ve sonraki 1/3/6/12 aylık getirilerle karşılaştırır. Sayfada model seçip kombinasyonun geçmişi incelenir. Sınırlar: hayatta kalma yanlılığı (yalnızca bugün işlem gören hisseler), temel veri modelleri test edilemez.
+- `sanal.html`: sanal portföy; sanal parayla al-sat (son kapanış fiyatından), kâr/zarar ve endekse göre takip. Fiyatlar her raporda üretilen `fiyat_bist.json` / `fiyat_abd.json` dosyalarından gelir; portföy tarayıcıda saklanır, yedek koduyla başka cihaza taşınır.
 - `site_olustur.py`: raporları siteye ekler, 45 günden eski olanları siler, ana sayfayı üretir
 - `.github/workflows/rapor.yml`: zamanlama ve yayınlama
 

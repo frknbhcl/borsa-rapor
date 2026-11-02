@@ -25,6 +25,7 @@ import argparse
 import html
 import io
 import logging
+import json
 import re
 import subprocess
 import sys
@@ -1110,6 +1111,34 @@ Korelasyon ve beta, {ayar['endeks'][0]} ile son 60 günlük günlük getiriler �
 # 6) Ana akış
 # ---------------------------------------------------------------------------
 
+def fiyat_json_yaz(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, kesin: bool, yol: Path,
+                   endeks: pd.Series | None = None) -> None:
+    """Sanal portföy sayfası için kısa fiyat dosyası: sembol -> [kapanış, günlük değişim, ad, öneri puanı, likit]."""
+    from oneri import ONERI
+    sec = [f"p_{x}" for x in ONERI.get(kod, {}).get("modeller", []) if f"p_{x}" in m.columns]
+    if sec:
+        P = m[sec]
+        oneri = P.mean(axis=1).where(P.notna().sum(axis=1) >= -(-len(sec) // 2))
+    else:
+        oneri = pd.Series(np.nan, index=m.index)
+    h = {}
+    for sembol, r in m[m["kapanis"].notna() & (m["kapanis"] > 0)].iterrows():
+        h[sembol.removesuffix(".IS")] = [
+            float(f"{r['kapanis']:.6g}"),
+            None if pd.isna(r["gunluk"]) else round(float(r["gunluk"]), 5),
+            str(r["ad"])[:48],
+            None if pd.isna(oneri.get(sembol)) else int(round(oneri[sembol])),
+            1 if r["likit"] else 0,
+            r["son_veri"].strftime("%Y-%m-%d") if pd.notna(r["son_veri"]) else None,
+        ]
+    veri = {"kod": kod, "ad": ayar["ad"], "para": ayar["para"], "tarih": f"{son_tarih:%Y-%m-%d}", "kesin": kesin,
+            "olusturma": datetime.now(ZoneInfo("Europe/Istanbul")).strftime("%Y-%m-%d %H:%M"),
+            "oneri": ONERI.get(kod, {}).get("baslik", ""),
+            "endeks": [ayar["endeks"][0], float(endeks.iloc[-1])] if endeks is not None and len(endeks) else None,
+            "h": h}
+    yol.write_text(json.dumps(veri, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+
+
 def duygu_verisi(veri: dict, ayar: dict) -> pd.DataFrame | None:
     """ABD duygu modelleri için güncel değerler (açığa satış oranı, kazanç sürprizi)."""
     import duygu
@@ -1169,6 +1198,9 @@ def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
     skor_yol = dosya.with_name(dosya.name + "_skor.html")
     skor_yol.write_text(skor_html(kod, ayar, m, son_tarih, MODELLER, GRUPLAR, banner, html_yol.name,
                                   lambda s: sembol_url(s, kod)), encoding="utf-8")
+
+    fiyat_json_yaz(kod, ayar, m, son_tarih, kesin=not banner.startswith('<div class="banner">Piyasa henüz kapanmadı'),
+                   yol=dosya.with_name(dosya.name + "_fiyat.json"), endeks=endeks)
 
     csv = m.drop(columns=["likit"]).copy()
     csv["son_veri"] = csv["son_veri"].dt.strftime("%Y-%m-%d")

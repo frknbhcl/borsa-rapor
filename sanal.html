@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sanal Portföy</title>
+<style>
+:root{--bg:#f6f7f9;--kart:#fff;--yazi:#1c2128;--soluk:#5b6470;--cizgi:#e3e6ea;--vurgu:#0b6bcb;--vurgu-bg:#e7f0fb;
+--pos:#16803c;--neg:#c62828;--uyari:#8a5a00;--uyari-bg:#fff6e0;--izgara:#eceef1;--s1:#2a78d6;--s0:#8b9099}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1216;--kart:#171b21;--yazi:#e6e9ee;--soluk:#9aa4b1;
+--cizgi:#2a3039;--vurgu:#5aa9ff;--vurgu-bg:#16273d;--pos:#3fbf6a;--neg:#ff6b6b;--uyari:#f0c060;--uyari-bg:#2b2412;--izgara:#232931;
+--s1:#3987e5;--s0:#7d8592}}
+:root[data-theme="dark"]{--bg:#0f1216;--kart:#171b21;--yazi:#e6e9ee;--soluk:#9aa4b1;--cizgi:#2a3039;--vurgu:#5aa9ff;--vurgu-bg:#16273d;
+--pos:#3fbf6a;--neg:#ff6b6b;--uyari:#f0c060;--uyari-bg:#2b2412;--izgara:#232931;--s1:#3987e5;--s0:#7d8592}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--yazi);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 64px}a{color:var(--vurgu);text-decoration:none}
+h1{font-size:22px;margin:4px 0 2px}h2{font-size:16px;margin:0 0 10px}.alt{color:var(--soluk);font-size:13px}
+.ust{display:flex;justify-content:space-between;gap:8px;font-size:14px;flex-wrap:wrap}
+.sekmeler{display:flex;gap:6px;margin-top:14px}
+.sekme{flex:1;border:1px solid var(--cizgi);background:var(--kart);color:var(--yazi);border-radius:10px;padding:10px;font:inherit;font-weight:600;cursor:pointer}
+.sekme[aria-selected="true"]{background:var(--vurgu-bg);border-color:var(--vurgu);color:var(--vurgu)}
+.kutu{background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:14px;margin-top:14px}
+.banner{background:var(--uyari-bg);color:var(--uyari);padding:9px 12px;border-radius:8px;margin-top:12px;font-size:13px}
+.ozet{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+@media (min-width:560px){.ozet{grid-template-columns:repeat(4,1fr)}}
+.tile{background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:12px;min-width:0}
+.tile .et{display:block;color:var(--soluk);font-size:12px}
+.tile b{display:block;font-size:20px;font-variant-numeric:tabular-nums;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .dip{display:block;color:var(--soluk);font-size:12px}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+label.alan{display:block;font-size:13px;color:var(--soluk);margin-top:10px}
+input,select{font:inherit;width:100%;padding:9px 11px;border:1px solid var(--cizgi);border-radius:8px;background:var(--kart);color:var(--yazi)}
+.satir2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.secim{display:flex;gap:6px;margin-top:10px}
+.secim button{flex:1;border:1px solid var(--cizgi);background:var(--bg);color:var(--yazi);border-radius:8px;padding:7px;font:inherit;font-size:13px;cursor:pointer}
+.secim button[aria-pressed="true"]{background:var(--vurgu-bg);border-color:var(--vurgu);color:var(--vurgu);font-weight:600}
+.bilgi{margin-top:10px;font-size:13px;color:var(--soluk);min-height:20px}
+.bilgi b{color:var(--yazi)}
+.dugme{border:0;background:var(--vurgu);color:#fff;border-radius:10px;padding:11px 16px;font:inherit;font-weight:600;cursor:pointer;width:100%;margin-top:12px}
+.dugme.sat{background:var(--neg)}.dugme.ikincil{background:none;border:1px solid var(--cizgi);color:var(--vurgu)}
+.dugme:disabled{opacity:.5;cursor:not-allowed}
+.mesaj{margin-top:10px;font-size:13px;padding:8px 10px;border-radius:8px;display:none}
+.mesaj.ok{display:block;background:var(--vurgu-bg);color:var(--vurgu)}.mesaj.hata{display:block;background:var(--uyari-bg);color:var(--uyari)}
+ol{list-style:none;margin:0;padding:0}
+li.poz{border-top:1px solid var(--cizgi)}li.poz:first-child{border-top:0}
+.pbas{display:grid;grid-template-columns:1fr auto;gap:4px 10px;width:100%;padding:11px 2px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.pbas b{font-size:15px}.pbas .sag{text-align:right;font-variant-numeric:tabular-nums}
+.pbas .ad{color:var(--soluk);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdetay{padding:2px 2px 14px;font-size:13px;color:var(--soluk)}
+.pdetay .izgara{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-bottom:8px}
+.pdetay .izgara b{color:var(--yazi);font-variant-numeric:tabular-nums}
+.puan{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--cizgi);margin-left:6px;font-weight:600}
+.bos{color:var(--soluk);font-size:14px;padding:8px 0}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 4px;border-bottom:1px solid var(--cizgi);text-align:right;white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}th{color:var(--soluk);font-weight:600;font-size:12px}
+.kap{overflow-x:auto}
+details summary{cursor:pointer;color:var(--vurgu);font-size:14px}
+textarea{width:100%;min-height:90px;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px;border:1px solid var(--cizgi);border-radius:8px;background:var(--bg);color:var(--yazi)}
+.grafik svg{display:block;width:100%;height:auto}
+.lejant{display:flex;gap:14px;font-size:12px;color:var(--soluk);margin-bottom:4px}.lejant i{display:inline-block;width:12px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+footer{color:var(--soluk);font-size:12px;margin-top:24px;line-height:1.5}
+</style></head>
+<body><main>
+<div class="ust"><a href="index.html">← Tüm raporlar</a><span><a id="skorLink" href="skor_bist.html">Skorlar →</a></span></div>
+<h1>Sanal Portföy</h1>
+<div class="alt">Sanal parayla al-sat dene. Gerçek para yok; işlemler son rapordaki kapanış fiyatından yapılır.</div>
+
+<div class="sekmeler" role="tablist">
+  <button class="sekme" role="tab" data-kod="bist" aria-selected="true">Borsa İstanbul</button>
+  <button class="sekme" role="tab" data-kod="abd" aria-selected="false">ABD</button>
+</div>
+<div id="durum" class="alt" style="margin-top:8px"></div>
+<div id="uyari"></div>
+
+<div class="ozet" id="ozet"></div>
+
+<section class="kutu" id="islemKutu">
+  <h2>Al / sat</h2>
+  <label class="alan">Hisse
+    <input id="sembol" list="semboller" autocomplete="off" autocapitalize="characters" placeholder="ör. THYAO">
+  </label>
+  <datalist id="semboller"></datalist>
+  <div class="bilgi" id="hisseBilgi"></div>
+  <div class="secim" id="tur"><button data-tur="adet" aria-pressed="true">Adet</button><button data-tur="tutar" aria-pressed="false">Tutar</button></div>
+  <div class="satir2">
+    <label class="alan" id="miktarEt">Adet<input id="miktar" type="number" inputmode="decimal" min="0" step="1"></label>
+    <label class="alan">Fiyat<input id="fiyat" type="number" inputmode="decimal" min="0" step="any"></label>
+  </div>
+  <div class="bilgi" id="ozetIslem"></div>
+  <div class="satir2"><button class="dugme" id="al">Al</button><button class="dugme sat" id="sat">Sat</button></div>
+  <div class="mesaj" id="mesaj"></div>
+</section>
+
+<section class="kutu">
+  <h2>Pozisyonlar</h2>
+  <ol id="pozlar"></ol>
+</section>
+
+<section class="kutu" id="grafikKutu" hidden>
+  <h2>Portföy değeri</h2>
+  <div class="lejant"><span><i style="background:var(--s1)"></i>Portföy</span><span id="endeksLej"><i style="background:var(--s0)"></i>Endeks</span></div>
+  <div class="grafik" id="grafik"></div>
+  <div class="alt">Her yeni raporda bir nokta eklenir (sayfayı açtığın günler). 100 = başlangıç.</div>
+</section>
+
+<section class="kutu">
+  <h2>Öneri sepeti</h2>
+  <div class="alt" id="sepetAciklama"></div>
+  <div class="satir2">
+    <label class="alan">Hisse sayısı<select id="sepetAdet"><option>5</option><option selected>10</option><option>20</option></select></label>
+    <label class="alan">Nakdin ne kadarı<select id="sepetOran"><option value="0.5">%50</option><option value="0.9" selected>%90</option><option value="1">%100</option></select></label>
+  </div>
+  <button class="dugme ikincil" id="sepetAl">Öneri puanı en yüksek likit hisseleri eşit tutarla al</button>
+</section>
+
+<section class="kutu">
+  <details><summary>İşlem geçmişi</summary><div class="kap" id="gecmis" style="margin-top:10px"></div></details>
+</section>
+
+<section class="kutu">
+  <details><summary>Ayarlar, yedek ve sıfırlama</summary>
+    <div class="satir2">
+      <label class="alan">Başlangıç nakdi<input id="baslangic" type="number" inputmode="decimal" min="1"></label>
+      <label class="alan">Komisyon (%)<input id="komisyon" type="number" inputmode="decimal" min="0" step="0.01"></label>
+    </div>
+    <button class="dugme ikincil" id="kaydetAyar">Ayarları kaydet</button>
+    <button class="dugme sat" id="sifirla">Bu portföyü sıfırla</button>
+    <p class="alt" style="margin-top:14px">Portföy yalnızca bu tarayıcıda saklanır. Başka cihaza taşımak için yedek kodunu kopyalayıp diğer cihazda "Geri yükle"ye yapıştır.</p>
+    <textarea id="yedek" spellcheck="false" placeholder="Yedek kodu"></textarea>
+    <div class="satir2"><button class="dugme ikincil" id="yedekAl">Yedek kodunu göster</button><button class="dugme ikincil" id="geriYukle">Geri yükle</button></div>
+  </details>
+</section>
+
+<footer>Fiyatlar Yahoo Finance kapanışlarıdır ve rapor her akşam güncellenir; seans içi fiyat yoktur. Temettüler ve bölünmeler portföye yansıtılmaz (Yahoo fiyatları temettüye göre düzeltildiği için maliyet ile fiyat arasında küçük farklar oluşabilir). Bu sayfa eğitim ve deneme amaçlıdır; yatırım tavsiyesi değildir.</footer>
+</main>
+<script>
+const ANAHTAR = 'sanal_portfoy_v1';
+const VARSAYILAN = {bist: {baslangic: 100000, komisyon: 0.2}, abd: {baslangic: 10000, komisyon: 0.1}};
+const PARA = {bist: '₺', abd: '$'};
+let kod = 'bist', F = {}, depo = null, kaydedilebilir = true, tur = 'adet', acik = new Set();
+
+const tr = (x, b = 2) => x == null || isNaN(x) ? '–' : x.toLocaleString('tr-TR', {minimumFractionDigits: b, maximumFractionDigits: b});
+const para = (x, b = 2) => x == null || isNaN(x) ? '–' : (x < 0 ? '−' : '') + PARA[kod] + tr(Math.abs(x), b);
+const yuzde = x => x == null || isNaN(x) || !isFinite(x) ? '–' : (x > 0 ? '+' : x < 0 ? '−' : '') + '%' + tr(Math.abs(x * 100), 2);
+const renk = x => x > 0 ? 'pos' : x < 0 ? 'neg' : '';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+const tarihTR = t => t ? t.split('-').reverse().join('.') : '';
+
+function bosPortfoy(k) {
+  return {baslangic: VARSAYILAN[k].baslangic, komisyon: VARSAYILAN[k].komisyon, nakit: VARSAYILAN[k].baslangic,
+          poz: {}, islemler: [], anlik: [], kurulus: null, gerceklesen: 0};
+}
+function yukleDepo() {
+  try { const s = localStorage.getItem(ANAHTAR); depo = s ? JSON.parse(s) : null; }
+  catch (e) { kaydedilebilir = false; depo = null; }
+  depo = depo || {};
+  for (const k of ['bist', 'abd']) depo[k] = Object.assign(bosPortfoy(k), depo[k] || {});
+}
+function kaydet() {
+  try { localStorage.setItem(ANAHTAR, JSON.stringify(depo)); kaydedilebilir = true; }
+  catch (e) { kaydedilebilir = false; }
+}
+const P = () => depo[kod];
+
+async function fiyatlariAl(k) {
+  if (F[k]) return F[k];
+  try {
+    const r = await fetch(`fiyat_${k}.json`, {cache: 'no-cache'});
+    if (!r.ok) throw new Error(r.status);
+    F[k] = await r.json();
+  } catch (e) { F[k] = {hata: true}; }
+  return F[k];
+}
+const fiyatVeri = () => F[kod] && !F[kod].hata ? F[kod] : null;
+const hisse = s => { const f = fiyatVeri(); return f && f.h[s] ? f.h[s] : null; };   // [kapanış, günlük, ad, öneri, likit, son veri]
+
+function degerler() {
+  const p = P(); let hisseDeger = 0, gunluk = 0, eksik = [];
+  for (const [s, x] of Object.entries(p.poz)) {
+    const h = hisse(s);
+    const fiyat = h ? h[0] : x.sonFiyat ?? x.maliyet;
+    if (!h) eksik.push(s);
+    hisseDeger += x.adet * fiyat;
+    // Bugün kapanıştan alınan hissenin bugünkü hareketi portföye ait değil
+    if (h && h[1] != null && x.ilk !== (fiyatVeri() || {}).tarih) gunluk += x.adet * fiyat * (1 - 1 / (1 + h[1]));
+  }
+  const toplam = p.nakit + hisseDeger;
+  return {hisseDeger, toplam, gunluk, eksik, kz: toplam - p.baslangic};
+}
+
+function anlikKaydet() {
+  const f = fiyatVeri(), p = P();
+  if (!f || !p.kurulus) return;
+  const d = degerler();
+  const e = f.endeks ? f.endeks[1] : null;
+  const son = p.anlik[p.anlik.length - 1];
+  const nokta = {t: f.tarih, d: Math.round(d.toplam * 100) / 100, e};
+  if (son && son.t === f.tarih) p.anlik[p.anlik.length - 1] = nokta;
+  else if (!son || son.t < f.tarih) p.anlik.push(nokta);
+  kaydet();
+}
+
+function cizOzet() {
+  const p = P(), d = degerler(), f = fiyatVeri();
+  let endeksGetiri = null;
+  if (f && f.endeks && p.anlik.length && p.anlik[0].e) endeksGetiri = f.endeks[1] / p.anlik[0].e - 1;
+  document.getElementById('ozet').innerHTML = `
+    <div class="tile"><span class="et">Toplam değer</span><b>${para(d.toplam, 0)}</b><span class="dip">başlangıç ${para(p.baslangic, 0)}</span></div>
+    <div class="tile"><span class="et">Kâr / zarar</span><b class="${renk(d.kz)}">${yuzde(d.kz / p.baslangic)}</b><span class="dip ${renk(d.kz)}">${para(d.kz, 0)}</span></div>
+    <div class="tile"><span class="et">Bugün</span><b class="${renk(d.gunluk)}">${yuzde(d.gunluk / (d.toplam - d.gunluk || 1))}</b><span class="dip ${renk(d.gunluk)}">${para(d.gunluk, 0)}</span></div>
+    <div class="tile"><span class="et">Nakit</span><b>${para(p.nakit, 0)}</b><span class="dip">${endeksGetiri == null ? 'hisselerde ' + para(d.hisseDeger, 0)
+      : `${esc(f.endeks[0])}: <span class="${renk(endeksGetiri)}">${yuzde(endeksGetiri)}</span>`}</span></div>`;
+}
+
+function cizPozlar() {
+  const p = P(), ol = document.getElementById('pozlar');
+  const satirlar = Object.entries(p.poz).map(([s, x]) => {
+    const h = hisse(s), fiyat = h ? h[0] : x.sonFiyat ?? x.maliyet;
+    return {s, x, h, fiyat, deger: x.adet * fiyat, kz: fiyat / x.maliyet - 1};
+  }).sort((a, b) => b.deger - a.deger);
+  if (!satirlar.length) { ol.innerHTML = '<li class="bos">Henüz pozisyon yok. Yukarıdan bir hisse al.</li>'; return; }
+  ol.innerHTML = satirlar.map(r => {
+    const puan = r.h && r.h[3] != null ? `<span class="puan" title="Öneri puanı">${r.h[3]}</span>` : '';
+    const eski = r.h && r.h[5] && fiyatVeri() && r.h[5] !== fiyatVeri().tarih ? ` · son fiyat ${tarihTR(r.h[5])}` : (!r.h ? ' · güncel fiyat yok' : '');
+    return `<li class="poz"><button class="pbas" data-s="${esc(r.s)}">
+      <span><b>${esc(r.s)}</b>${puan}<span class="ad" style="display:block">${esc(r.h ? r.h[2] : '')}${eski}</span></span>
+      <span class="sag"><b>${para(r.deger, 0)}</b><span style="display:block" class="${renk(r.kz)}">${yuzde(r.kz)}</span></span></button>
+      ${acik.has(r.s) ? `<div class="pdetay"><div class="izgara">
+        <span>Adet <b>${tr(r.x.adet, 0)}</b></span><span>Ort. maliyet <b>${para(r.x.maliyet)}</b></span>
+        <span>Son fiyat <b>${para(r.fiyat)}</b></span><span>Günlük <b class="${renk(r.h?.[1])}">${yuzde(r.h?.[1])}</b></span>
+        <span>K/Z <b class="${renk(r.kz)}">${para(r.deger - r.x.adet * r.x.maliyet, 0)}</b></span><span>Alış <b>${tarihTR(r.x.ilk)}</b></span></div>
+        <button class="dugme ikincil" data-sec="${esc(r.s)}">Al / sat formuna getir</button></div>` : ''}</li>`;
+  }).join('');
+}
+
+function cizGecmis() {
+  const p = P(), k = document.getElementById('gecmis');
+  if (!p.islemler.length) { k.innerHTML = '<div class="bos">İşlem yok.</div>'; return; }
+  k.innerHTML = `<div class="alt" style="margin-bottom:6px">Gerçekleşen kâr/zarar: <b class="${renk(p.gerceklesen)}">${para(p.gerceklesen, 0)}</b></div>
+    <table><thead><tr><th>Tarih</th><th>İşlem</th><th>Adet</th><th>Fiyat</th><th>Tutar</th></tr></thead><tbody>` +
+    [...p.islemler].reverse().map(i => `<tr><td>${tarihTR(i.t)}</td><td>${i.tip === 'al' ? 'Al' : 'Sat'} ${esc(i.s)}</td>
+      <td>${tr(i.adet, 0)}</td><td>${tr(i.fiyat)}</td><td class="${i.tip === 'sat' ? 'pos' : ''}">${tr(i.tutar, 0)}</td></tr>`).join('') +
+    '</tbody></table>';
+}
+
+function cizGrafik() {
+  const p = P(), kutu = document.getElementById('grafikKutu');
+  const a = p.anlik.filter(x => x.d > 0);
+  if (a.length < 2) { kutu.hidden = true; return; }
+  kutu.hidden = false;
+  const s1 = a.map(x => x.d / a[0].d * 100), e0 = a[0].e, s0 = e0 ? a.map(x => x.e ? x.e / e0 * 100 : null) : null;
+  document.getElementById('endeksLej').style.display = s0 ? '' : 'none';
+  const W = 640, H = 220, L = 40, R = 10, T = 10, B = 26;
+  const tum = s1.concat(s0 ? s0.filter(v => v != null) : []);
+  let mn = Math.min(...tum), mx = Math.max(...tum); const pay = (mx - mn) * 0.1 || 1; mn -= pay; mx += pay;
+  const x = i => L + (W - L - R) * (a.length === 1 ? 0 : i / (a.length - 1)), y = v => T + (H - T - B) * (1 - (v - mn) / (mx - mn));
+  const yol = s => s.map((v, i) => v == null ? '' : `${i && s[i - 1] != null ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+  let izgara = '';
+  for (let k = 0; k <= 4; k++) { const v = mn + (mx - mn) * k / 4;
+    izgara += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--izgara)"/><text x="${L - 6}" y="${y(v) + 4}" font-size="11" fill="var(--soluk)" text-anchor="end">${tr(v, 0)}</text>`; }
+  izgara += `<text x="${L}" y="${H - 6}" font-size="11" fill="var(--soluk)">${tarihTR(a[0].t)}</text><text x="${W - R}" y="${H - 6}" font-size="11" fill="var(--soluk)" text-anchor="end">${tarihTR(a[a.length - 1].t)}</text>`;
+  document.getElementById('grafik').innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Portföy değeri">${izgara}
+    ${s0 ? `<path d="${yol(s0)}" fill="none" stroke="var(--s0)" stroke-width="2"/>` : ''}
+    <path d="${yol(s1)}" fill="none" stroke="var(--s1)" stroke-width="2.5"/></svg>`;
+}
+
+function hisseBilgisi() {
+  const s = document.getElementById('sembol').value.trim().toUpperCase();
+  const h = hisse(s), k = document.getElementById('hisseBilgi');
+  if (!s) { k.innerHTML = ''; return null; }
+  if (!h) { k.innerHTML = fiyatVeri() ? 'Bu sembol bulunamadı.' : ''; return null; }
+  const elde = P().poz[s];
+  k.innerHTML = `<b>${esc(h[2])}</b> · son kapanış <b>${para(h[0])}</b> <span class="${renk(h[1])}">${yuzde(h[1])}</span>` +
+    (h[3] != null ? ` · öneri puanı <b>${h[3]}</b>` : '') + (h[4] ? '' : ' · <span style="color:var(--uyari)">likit değil</span>') +
+    (h[5] && h[5] !== fiyatVeri().tarih ? ` · <span style="color:var(--uyari)">son fiyat ${tarihTR(h[5])}</span>` : '') +
+    (elde ? `<br>Elinde ${tr(elde.adet, 0)} adet, ort. maliyet ${para(elde.maliyet)}` : '');
+  const fi = document.getElementById('fiyat');
+  if (fi.dataset.s !== s) { fi.value = h[0]; fi.dataset.s = s; }
+  return h;
+}
+
+function islemOzeti() {
+  const s = document.getElementById('sembol').value.trim().toUpperCase(), h = hisse(s);
+  const fiyat = parseFloat(document.getElementById('fiyat').value), m = parseFloat(document.getElementById('miktar').value);
+  const k = document.getElementById('ozetIslem');
+  if (!h || !(fiyat > 0) || !(m > 0)) { k.innerHTML = ''; return null; }
+  const kom = P().komisyon / 100;
+  const adet = tur === 'adet' ? Math.floor(m) : Math.floor(m / (fiyat * (1 + kom)));
+  const tutar = adet * fiyat;
+  k.innerHTML = `${tr(adet, 0)} adet × ${para(fiyat)} = <b>${para(tutar)}</b> · komisyon ${para(tutar * kom)}`;
+  return {s, adet, fiyat, tutar, komisyon: tutar * kom};
+}
+
+function mesaj(t, hata) { const m = document.getElementById('mesaj'); m.textContent = t; m.className = 'mesaj ' + (hata ? 'hata' : 'ok'); }
+
+function al(s, adet, fiyat, sessiz) {
+  const p = P(), f = fiyatVeri(), kom = p.komisyon / 100;
+  const tutar = adet * fiyat, toplam = tutar * (1 + kom);
+  if (!(adet >= 1)) { if (!sessiz) mesaj('Adet en az 1 olmalı.', true); return false; }
+  if (toplam > p.nakit + 1e-9) { if (!sessiz) mesaj(`Nakit yetmiyor: gereken ${para(toplam)}, nakit ${para(p.nakit)}.`, true); return false; }
+  const x = p.poz[s] || {adet: 0, maliyet: 0, ilk: f.tarih};
+  x.maliyet = (x.adet * x.maliyet + toplam) / (x.adet + adet);   // komisyon maliyete dahil
+  x.adet += adet; x.sonFiyat = fiyat; p.poz[s] = x;
+  p.nakit -= toplam;
+  if (!p.kurulus) p.kurulus = f.tarih;
+  p.islemler.push({t: f.tarih, tip: 'al', s, adet, fiyat, tutar: Math.round(toplam * 100) / 100});
+  if (!sessiz) mesaj(`${tr(adet, 0)} adet ${s} alındı (${para(toplam)}).`);
+  return true;
+}
+
+function sat(s, adet, fiyat) {
+  const p = P(), f = fiyatVeri(), x = p.poz[s], kom = p.komisyon / 100;
+  if (!x) { mesaj(`Elinde ${s} yok.`, true); return; }
+  if (!(adet >= 1)) { mesaj('Adet en az 1 olmalı.', true); return; }
+  adet = Math.min(adet, x.adet);
+  const net = adet * fiyat * (1 - kom);
+  p.nakit += net;
+  p.gerceklesen += net - adet * x.maliyet;
+  x.adet -= adet; x.sonFiyat = fiyat;
+  if (x.adet <= 0) delete p.poz[s];
+  p.islemler.push({t: f.tarih, tip: 'sat', s, adet, fiyat, tutar: Math.round(net * 100) / 100});
+  mesaj(`${tr(adet, 0)} adet ${s} satıldı (${para(net)}).`);
+}
+
+function hepsiniCiz() {
+  const f = fiyatVeri(), d = document.getElementById('durum'), u = document.getElementById('uyari');
+  document.getElementById('skorLink').href = `skor_${kod}.html`;
+  if (!f) { d.textContent = ''; u.innerHTML = '<div class="banner">Fiyat verisi yüklenemedi. Sayfayı yenile; sorun sürerse rapor henüz bu özelliği içermiyor olabilir.</div>'; }
+  else {
+    d.textContent = `Fiyatlar: ${tarihTR(f.tarih)} kapanışı · güncelleme ${f.olusturma.split(' ').map((x, i) => i ? x : tarihTR(x)).join(' ')}`;
+    u.innerHTML = (f.kesin ? '' : '<div class="banner">Seans sürüyor: fiyatlar anlık ve kesinleşmemiş.</div>') +
+      (kaydedilebilir ? '' : '<div class="banner">Bu tarayıcı veri kaydetmeye izin vermiyor (gizli sekme olabilir); sayfa kapanınca portföy silinir.</div>');
+    const dl = document.getElementById('semboller');
+    dl.innerHTML = Object.entries(f.h).filter(([, h]) => h[4]).map(([s, h]) => `<option value="${esc(s)}">${esc(h[2])}</option>`).join('');
+    document.getElementById('sepetAciklama').innerHTML = f.oneri
+      ? `Sitedeki orta vade önerisine göre (${esc(f.oneri)}) puanı en yüksek likit hisseleri eşit tutarla alır. 3 ay tutmak için tasarlandı.`
+      : 'Bu borsa için öneri yok.';
+  }
+  const p = P();
+  document.getElementById('baslangic').value = p.baslangic;
+  document.getElementById('komisyon').value = p.komisyon;
+  anlikKaydet(); cizOzet(); cizPozlar(); cizGecmis(); cizGrafik(); hisseBilgisi(); islemOzeti();
+}
+
+async function sekmeSec(k) {
+  kod = k;
+  document.querySelectorAll('.sekme').forEach(b => b.setAttribute('aria-selected', b.dataset.kod === k));
+  document.getElementById('sembol').placeholder = k === 'bist' ? 'ör. THYAO' : 'ör. AAPL';
+  document.getElementById('mesaj').className = 'mesaj';
+  try { localStorage.setItem(ANAHTAR + '_sekme', k); } catch (e) {}
+  await fiyatlariAl(k);
+  hepsiniCiz();
+}
+
+document.querySelectorAll('.sekme').forEach(b => b.onclick = () => sekmeSec(b.dataset.kod));
+document.getElementById('sembol').addEventListener('input', () => { hisseBilgisi(); islemOzeti(); });
+['miktar', 'fiyat'].forEach(i => document.getElementById(i).addEventListener('input', islemOzeti));
+document.getElementById('tur').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return; tur = b.dataset.tur;
+  document.querySelectorAll('#tur button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  document.getElementById('miktarEt').firstChild.textContent = tur === 'adet' ? 'Adet' : `Tutar (${PARA[kod]})`;
+  document.getElementById('miktar').step = tur === 'adet' ? '1' : 'any';
+  islemOzeti();
+};
+document.getElementById('al').onclick = () => {
+  if (!fiyatVeri()) return;
+  const o = islemOzeti(); if (!o) { mesaj('Hisse, miktar ve fiyatı gir.', true); return; }
+  if (al(o.s, o.adet, o.fiyat)) { kaydet(); hepsiniCiz(); }
+};
+document.getElementById('sat').onclick = () => {
+  if (!fiyatVeri()) return;
+  const s = document.getElementById('sembol').value.trim().toUpperCase();
+  const fiyat = parseFloat(document.getElementById('fiyat').value), m = parseFloat(document.getElementById('miktar').value);
+  if (!P().poz[s]) { mesaj(`Elinde ${s || 'bu hisse'} yok.`, true); return; }
+  if (!(fiyat > 0)) { mesaj('Fiyatı gir.', true); return; }
+  const adet = !(m > 0) ? P().poz[s].adet : tur === 'adet' ? Math.floor(m) : Math.floor(m / fiyat);
+  sat(s, adet, fiyat); kaydet(); hepsiniCiz();
+};
+document.getElementById('pozlar').onclick = e => {
+  const sec = e.target.closest('[data-sec]');
+  if (sec) {
+    const s = sec.dataset.sec; document.getElementById('sembol').value = s;
+    document.getElementById('fiyat').dataset.s = ''; hisseBilgisi(); islemOzeti();
+    document.getElementById('islemKutu').scrollIntoView({behavior: 'smooth'}); return;
+  }
+  const b = e.target.closest('.pbas'); if (!b) return;
+  acik.has(b.dataset.s) ? acik.delete(b.dataset.s) : acik.add(b.dataset.s); cizPozlar();
+};
+document.getElementById('sepetAl').onclick = () => {
+  const f = fiyatVeri(); if (!f) return;
+  const n = +document.getElementById('sepetAdet').value, oran = +document.getElementById('sepetOran').value;
+  const aday = Object.entries(f.h).filter(([s, h]) => h[4] && h[3] != null && h[5] === f.tarih && !P().poz[s])
+    .sort((a, b) => b[1][3] - a[1][3]).slice(0, n);
+  if (!aday.length) { mesaj('Öneri puanı olan hisse bulunamadı.', true); return; }
+  const kom = P().komisyon / 100, butce = P().nakit * oran / aday.length;
+  if (!confirm(`${aday.length} hisse (${aday.map(x => x[0]).join(', ')}) her biri yaklaşık ${para(butce, 0)} tutarla alınsın mı?`)) return;
+  const alinan = [];
+  for (const [s, h] of aday) { const adet = Math.floor(butce / (h[0] * (1 + kom))); if (adet >= 1 && al(s, adet, h[0], true)) alinan.push(s); }
+  kaydet(); hepsiniCiz();
+  mesaj(alinan.length ? `Alındı: ${alinan.join(', ')}` : 'Hiçbir hisse alınamadı (tutar bir hisseye yetmiyor olabilir).', !alinan.length);
+};
+document.getElementById('kaydetAyar').onclick = () => {
+  const p = P(), b = parseFloat(document.getElementById('baslangic').value), k = parseFloat(document.getElementById('komisyon').value);
+  if (!(k >= 0 && k < 5)) { mesaj('Komisyon %0 ile %5 arasında olmalı.', true); return; }
+  p.komisyon = k;
+  if (b > 0 && b !== p.baslangic) {
+    if (p.islemler.length) { mesaj('Başlangıç nakdi yalnızca boş portföyde değişir; önce sıfırla.', true); }
+    else { p.baslangic = b; p.nakit = b; }
+  }
+  kaydet(); hepsiniCiz(); if (document.getElementById('mesaj').className.indexOf('hata') < 0) mesaj('Ayarlar kaydedildi.');
+};
+document.getElementById('sifirla').onclick = () => {
+  if (!confirm(`${kod === 'bist' ? 'Borsa İstanbul' : 'ABD'} sanal portföyü silinsin mi? Bu geri alınamaz.`)) return;
+  const p = P(); depo[kod] = Object.assign(bosPortfoy(kod), {baslangic: p.baslangic, nakit: p.baslangic, komisyon: p.komisyon});
+  acik.clear(); kaydet(); hepsiniCiz(); mesaj('Portföy sıfırlandı.');
+};
+document.getElementById('yedekAl').onclick = () => {
+  const t = document.getElementById('yedek'); t.value = btoa(unescape(encodeURIComponent(JSON.stringify(depo)))); t.select();
+  try { navigator.clipboard.writeText(t.value).then(() => mesaj('Yedek kodu kopyalandı.'), () => mesaj('Kodu seçip kopyala.')); } catch (e) { mesaj('Kodu seçip kopyala.'); }
+};
+document.getElementById('geriYukle').onclick = () => {
+  const t = document.getElementById('yedek').value.trim(); if (!t) { mesaj('Önce yedek kodunu yapıştır.', true); return; }
+  try {
+    const d = JSON.parse(decodeURIComponent(escape(atob(t))));
+    if (!d.bist && !d.abd) throw new Error();
+    if (!confirm('Bu cihazdaki iki sanal portföy de yedektekiyle değiştirilsin mi?')) return;
+    depo = d; for (const k of ['bist', 'abd']) depo[k] = Object.assign(bosPortfoy(k), depo[k] || {});
+    kaydet(); hepsiniCiz(); mesaj('Yedek geri yüklendi.');
+  } catch (e) { mesaj('Yedek kodu okunamadı.', true); }
+};
+
+yukleDepo();
+(async () => {
+  const h = new URLSearchParams(location.hash.slice(1)).get('al');   // ör. #al=bist:THYAO
+  let k0 = null; try { k0 = localStorage.getItem(ANAHTAR + '_sekme'); } catch (e) {}
+  let s0 = null;
+  if (h && h.includes(':')) { [k0, s0] = h.split(':'); }
+  await sekmeSec(k0 === 'abd' ? 'abd' : 'bist');
+  if (s0) { document.getElementById('sembol').value = s0.toUpperCase(); hisseBilgisi(); islemOzeti(); document.getElementById('miktar').focus(); }
+})();
+</script>
+</body></html>

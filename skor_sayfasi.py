@@ -23,7 +23,7 @@ font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 main{max-width:760px;margin:0 auto;padding:20px 16px 64px}
 a{color:var(--vurgu);text-decoration:none}
 h1{font-size:22px;margin:4px 0 2px}.alt{color:var(--soluk);font-size:13px}
-.ust{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.ust{display:flex;justify-content:space-between;align-items:center;gap:4px 12px;font-size:14px;flex-wrap:wrap}.ust .geri-yer{white-space:nowrap}
 .banner{background:var(--uyari-bg);color:var(--uyari);padding:9px 12px;border-radius:8px;margin:12px 0;font-size:13px}
 .kutu{background:var(--kart);border:1px solid var(--cizgi);border-radius:12px;padding:12px;margin-top:14px}
 .grup{margin-top:10px}.grup:first-child{margin-top:0}
@@ -150,6 +150,8 @@ function detay(r){
     <span class="np ${sinif(p)}">${p??'–'}</span><div class="cubuk"><i style="width:${p??0}%"></i></div>
     <span class="deg">${m.etiket}: ${bicim(m,v)}</span></div>`;}
   h+=`<a class="disari" href="${r.url}" target="_blank" rel="noopener">Grafiği aç ↗</a>`;
+  const sanal=(document.querySelector('a.geri-yer')?.getAttribute('href')||'../index.html').replace('index.html','sanal.html');
+  h+=` · <a class="disari" href="${sanal}#al=${D.kod}:${encodeURIComponent(r.s)}">Sanal portföyde al</a>`;
   return h;
 }
 function katki(r){
@@ -242,7 +244,7 @@ def skor_html(kod: str, ayar: dict, m: pd.DataFrame, son_tarih, modeller: list, 
 <meta name="robots" content="noindex">
 <title>{ayar['ad']} skorları · {son_tarih:%d.%m.%Y}</title><style>{CSS}</style></head>
 <body><main>
-<div class="ust"><a class="geri-yer" href="../index.html">← Tüm raporlar</a><span><a href="../geriye_test_{kod}.html">Geriye dönük test</a> · <a href="{rapor_adi}">Günlük rapor →</a></span></div>
+<div class="ust"><a class="geri-yer" href="../index.html">← Tüm raporlar</a><span><a href="../sanal.html">Sanal portföy</a> · <a href="../geriye_test_{kod}.html">Geriye dönük test</a> · <a href="{rapor_adi}">Günlük rapor →</a></span></div>
 <h1>{ayar['ad']} · Skorlar</h1>
 <div class="alt">Veri tarihi {son_tarih:%d.%m.%Y} · oluşturma {olusturma}</div>
 {banner}
