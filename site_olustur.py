@@ -169,8 +169,8 @@ def main() -> None:
     sanal_kart = ""
     if sanal.exists() and any((site / f"fiyat_{k}.json").exists() for k in ("bist", "abd")):
         shutil.copy2(sanal, site / "sanal.html")
-        sanal_kart = ('<a class="kart genis" href="sanal.html"><b>Sanal portföy</b>'
-                      '<span class="alt">Sanal parayla hisse al-sat, kâr/zararını takip et.</span>'
+        sanal_kart = ('<a class="kart genis" href="sanal.html"><b>Sanal borsa</b>'
+                      '<span class="alt">Seçtiğin hisseleri izle, sanal parayla al-sat, kâr/zararını takip et.</span>'
                       '<span class="linkler"><span class="ok">Aç →</span></span></a>')
 
     simdi = datetime.now(ZoneInfo("Europe/Istanbul")).strftime("%d.%m.%Y %H:%M")
