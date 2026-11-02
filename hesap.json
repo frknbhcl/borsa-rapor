@@ -2,14 +2,8 @@
  "bist": {
   "baslangic": 100000,
   "komisyon": 0.2,
-  "nakit": 74045.59479999999,
+  "nakit": 98076.03759999998,
   "poz": {
-   "SUNTK": {
-    "adet": 1715,
-    "maliyet": 14.56908,
-    "ilk": "2026-11-02 14:39",
-    "sonFiyat": 14.54
-   },
    "KCHOL": {
     "adet": 5,
     "maliyet": 193.6866,
@@ -35,10 +29,20 @@
     "fiyat": 193.3,
     "tutar": 968.43,
     "komisyon": 1.93
+   },
+   {
+    "t": "2026-11-02 15:25",
+    "tip": "sat",
+    "s": "SUNTK",
+    "adet": 1715,
+    "fiyat": 14.04,
+    "tutar": 24030.44,
+    "komisyon": 48.16,
+    "kz": -955.53
    }
   ],
   "kurulus": "2026-11-02 14:39",
-  "gerceklesen": 0,
+  "gerceklesen": -955.5294000000031,
   "izleme": [
    "SUNTK",
    "KCHOL"
@@ -56,5 +60,5 @@
   "izleme": []
  },
  "surum": 2,
- "guncelleme": "2026-11-02 15:24"
+ "guncelleme": "2026-11-02 15:25"
 }
