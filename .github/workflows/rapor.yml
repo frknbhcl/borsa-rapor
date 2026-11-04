@@ -40,36 +40,39 @@ jobs:
       - name: Piyasayı seç
         id: secim
         run: |
+          # Elle çalıştırmada seçilen piyasa. Zamanlanmış çalıştırmada her iki piyasaya da bakılır:
+          # son kapanış raporu yayında olmayan piyasa(lar) çalışır. GitHub bazen zamanlanmış
+          # çalıştırmaları atladığı için BIST'in eksik raporu ABD saatlerinde de tamamlanır.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             piyasa="${{ inputs.piyasa }}"
-          elif [ "${{ github.event.schedule }}" = "40 15,17,19 * * 1-5" ]; then
-            piyasa=bist
+            calis=true
           else
-            piyasa=abd
-          fi
-          echo "piyasa=$piyasa" >> "$GITHUB_OUTPUT"
-          calis=true
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            calis=$(python3 - "$piyasa" <<'PY'
-          import sys, datetime as dt
+            eksik=$(python3 <<'PY'
+          import datetime as dt
           from pathlib import Path
           from zoneinfo import ZoneInfo
-          kod = sys.argv[1]
-          if kod == "bist":
-              simdi = dt.datetime.now(ZoneInfo("Europe/Istanbul")); kapanis = (18, 20)
-          else:
-              simdi = dt.datetime.now(ZoneInfo("America/New_York")); kapanis = (16, 15)
-          gun = simdi.date()
-          if (simdi.hour, simdi.minute) < kapanis:
-              gun -= dt.timedelta(days=1)
-          while gun.weekday() >= 5:
-              gun -= dt.timedelta(days=1)
-          f = Path("site/raporlar") / f"{gun:%Y-%m-%d}_{kod.upper()}.html"
-          kesin = f.exists() and "Piyasa henüz kapanmadı" not in f.read_text(encoding="utf-8")
-          print("false" if kesin else "true")
+          out = []
+          for kod, tz, kapanis in (("bist", "Europe/Istanbul", (18, 20)), ("abd", "America/New_York", (16, 15))):
+              simdi = dt.datetime.now(ZoneInfo(tz))
+              gun = simdi.date()
+              if (simdi.hour, simdi.minute) < kapanis:
+                  gun -= dt.timedelta(days=1)
+              while gun.weekday() >= 5:
+                  gun -= dt.timedelta(days=1)
+              f = Path("site/raporlar") / f"{gun:%Y-%m-%d}_{kod.upper()}.html"
+              kesin = f.exists() and "Piyasa henüz kapanmadı" not in f.read_text(encoding="utf-8")
+              if not kesin:
+                  out.append(kod)
+          print(" ".join(out))
           PY
-          )
+            )
+            case "$eksik" in
+              "bist abd") piyasa=hepsi; calis=true ;;
+              bist|abd) piyasa=$eksik; calis=true ;;
+              *) piyasa=yok; calis=false ;;
+            esac
           fi
+          echo "piyasa=$piyasa" >> "$GITHUB_OUTPUT"
           echo "calis=$calis" >> "$GITHUB_OUTPUT"
           echo "Piyasa: $piyasa, çalıştırılacak mı: $calis"
 
