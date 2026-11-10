@@ -6,6 +6,7 @@ on:
   # hiçbir şey yapmadan biter.
   schedule:
     - cron: "40 15,17,19 * * 1-5"   # BIST: hafta içi 18:40, 20:40, 22:40 (TR)
+    - cron: "40 7,9,11 * * 1-5"     # Yedek: ertesi gün seans içinde dünün eksik raporunu tamamlar (10:40, 12:40, 14:40 TR)
     - cron: "40 21,23 * * 1-5"      # ABD: hafta içi 00:40, 02:40 (TR)
     - cron: "40 2,4 * * 2-6"        # ABD yedek: 05:40, 07:40 (TR)
   workflow_dispatch:           # GitHub uygulamasından elle çalıştırmak için
@@ -15,6 +16,10 @@ on:
         type: choice
         options: [hepsi, bist, abd]
         default: hepsi
+      tarih:
+        description: "İsteğe bağlı: geçmiş bir günün kesin raporu (YYYY-AA-GG). Boşsa en güncel veri."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -46,6 +51,9 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             piyasa="${{ inputs.piyasa }}"
             calis=true
+            if [ -n "${{ inputs.tarih }}" ]; then
+              if [ "$piyasa" = hepsi ]; then hedefler="bist:${{ inputs.tarih }} abd:${{ inputs.tarih }}"; else hedefler="$piyasa:${{ inputs.tarih }}"; fi
+            fi
           else
             eksik=$(python3 <<'PY'
           import datetime as dt
@@ -62,16 +70,18 @@ jobs:
               f = Path("site/raporlar") / f"{gun:%Y-%m-%d}_{kod.upper()}.html"
               kesin = f.exists() and "Piyasa henüz kapanmadı" not in f.read_text(encoding="utf-8")
               if not kesin:
-                  out.append(kod)
+                  out.append(f"{kod}:{gun:%Y-%m-%d}")
           print(" ".join(out))
           PY
             )
-            case "$eksik" in
+            hedefler="$eksik"
+            case "$(echo $eksik | sed 's/:[0-9-]*//g')" in
               "bist abd") piyasa=hepsi; calis=true ;;
-              bist|abd) piyasa=$eksik; calis=true ;;
+              bist|abd) piyasa=$(echo $eksik | sed 's/:.*//'); calis=true ;;
               *) piyasa=yok; calis=false ;;
             esac
           fi
+          echo "hedefler=${hedefler:-}" >> "$GITHUB_OUTPUT"
           echo "piyasa=$piyasa" >> "$GITHUB_OUTPUT"
           echo "calis=$calis" >> "$GITHUB_OUTPUT"
           echo "Piyasa: $piyasa, çalıştırılacak mı: $calis"
@@ -117,7 +127,16 @@ jobs:
 
       - name: Raporu oluştur
         if: steps.secim.outputs.calis == 'true'
-        run: python gunluk_rapor.py ${{ steps.secim.outputs.piyasa }} --acma
+        run: |
+          # Zamanlanmış çalıştırma: her eksik piyasa için o günün kapanışına göre kesin rapor.
+          # Elle çalıştırma: seçilen piyasa(lar) için en güncel veriyle (seans içindeyse anlık) rapor.
+          if [ -n "${{ steps.secim.outputs.hedefler }}" ]; then
+            for h in ${{ steps.secim.outputs.hedefler }}; do
+              python gunluk_rapor.py "${h%%:*}" --acma --tarih "${h##*:}"
+            done
+          else
+            python gunluk_rapor.py ${{ steps.secim.outputs.piyasa }} --acma
+          fi
 
       - name: Verileri bağımsız olarak doğrula
         if: always() && steps.secim.outputs.calis == 'true'

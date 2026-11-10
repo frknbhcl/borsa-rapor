@@ -1159,7 +1159,9 @@ def duygu_verisi(veri: dict, ayar: dict) -> pd.DataFrame | None:
         return None
 
 
-def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
+def piyasa_raporu(kod: str, tam: bool, ac: bool, tarih: str | None = None) -> Path | None:
+    """tarih verilirse rapor o günün kapanışına göre üretilir (sonraki günlerin verisi kesilir).
+    O günün verisi henüz yoksa rapor üretilmez; sonraki çalıştırma yeniden dener."""
     ayar = PIYASALAR[kod]
     basla = time.time()
     yaz(f"\n=== {ayar['ad']} ===")
@@ -1169,6 +1171,16 @@ def piyasa_raporu(kod: str, tam: bool, ac: bool) -> Path | None:
     yaz(f"  {len(liste)} hisse")
     veri = fiyatlari_guncelle(kod, liste["sembol"].tolist(), tam)
     endeksler = endeksleri_indir(ayar)
+    if tarih:
+        hedef = pd.Timestamp(tarih)
+        veri = {a: df.loc[df.index <= hedef] for a, df in veri.items()}
+        endeksler = {k: e.loc[e.index <= hedef] for k, e in endeksler.items()}
+        sayim = veri["Close"].notna().sum(axis=1)
+        dolu = sayim[sayim >= 0.5 * sayim.max()].index
+        if not len(dolu) or dolu[-1] != hedef:
+            yaz(f"  {tarih} kapanış verisi henüz yok (son dolu gün: {dolu[-1].date() if len(dolu) else '-'}); "
+                "rapor üretilmedi, sonraki çalıştırma yeniden deneyecek.")
+            return None
     endeks = endeksler.get(ayar["endeks"][0])
     duygu_df = duygu_verisi(veri, ayar) if kod == "abd" else None
 
@@ -1232,11 +1244,12 @@ def main() -> None:
     p.add_argument("piyasa", nargs="?", default="hepsi", choices=["hepsi", "bist", "abd"])
     p.add_argument("--tam", action="store_true", help="önbelleği yok say, her şeyi baştan indir")
     p.add_argument("--acma", action="store_true", help="raporu tarayıcıda açma")
+    p.add_argument("--tarih", help="raporu bu günün kapanışına göre üret (YYYY-AA-GG); veri yoksa üretmez")
     args = p.parse_args()
     kodlar = ["bist", "abd"] if args.piyasa == "hepsi" else [args.piyasa]
     for kod in kodlar:
         try:
-            piyasa_raporu(kod, args.tam, not args.acma)
+            piyasa_raporu(kod, args.tam, not args.acma, args.tarih)
         except KeyboardInterrupt:
             sys.exit("\nİptal edildi.")
         except SystemExit:
